@@ -25,9 +25,9 @@
 
 extern FILE *olsr_event_log;
 
-#define DEBUG 1
+#define DEBUG 0
 
-#define ENABLE_OPTIMISTIC 1
+#define ENABLE_OPTIMISTIC 0
 
 /** HELLO message interval */
 #define HELLO_INTERVAL 2
@@ -50,7 +50,7 @@ extern FILE *olsr_event_log;
 #define OLSR_MAX_DUPES 64
 
 /** For Situational Awareness (SA) */
-#define MASTER_NODE ((s->local_address / OLSR_MAX_NEIGHBORS) * OLSR_MAX_NEIGHBORS)
+#define MASTER_NODE ((s->get_local_address() / OLSR_MAX_NEIGHBORS) * OLSR_MAX_NEIGHBORS)
 //#define MASTER_NODE ((s->local_address == 0) ? 0 : (OLSR_MAX_NEIGHBORS / s->local_address))
 
 typedef tw_lpid o_addr; /**< We'll use this as a place holder for addresses */
@@ -274,34 +274,99 @@ protected:
  @endcode
  */
 
-typedef struct /*OlsrState */
+class node_state : public LP_State /*OlsrState */
 {
+private:
     /// Longitude for this node only
-    double lng;
+    std::shared_ptr<double> lng;
     /// Latitude for this node only
-    double lat;
+    std::shared_ptr<double> lat;
+
     /// this node's address
-    o_addr local_address;
-    
+    std::shared_ptr<o_addr> local_address;
+
+    // vector<NeighborTuple>
+    std::shared_ptr<unsigned> num_neigh;
+    std::shared_ptr<neigh_tuple> neighSet[OLSR_MAX_NEIGHBORS];
+
+    // vector<TwoHopNeighborTuple>
+    std::shared_ptr<unsigned> num_two_hop;
+    std::shared_ptr<two_hop_neigh_tuple> twoHopSet[OLSR_MAX_2_HOP];
+
+    // set<Ipv4Address>
+    std::shared_ptr<unsigned> num_mpr;
+    std::shared_ptr<o_addr> mprSet[OLSR_MAX_NEIGHBORS];
+
+    // vector<MprSelectorTuple>
+    std::shared_ptr<unsigned> num_mpr_sel;
+    std::shared_ptr<mpr_sel_tuple> mprSelSet[OLSR_MAX_NEIGHBORS];
+
+    // vector<TopologyTuple>
+    std::shared_ptr<unsigned> num_top_set;
+    std::shared_ptr<top_tuple> topSet[OLSR_MAX_TOP_TUPLES];
+
+public:
+    double get_lng() { return *lng.get(); }
+    void set_lng(double l) { lng = std::make_shared<double>(l); }
+
+    double get_lat() { return *lat.get(); }
+    void set_lat(double l) { lat = std::make_shared<double>(l); }
+
+    o_addr get_local_address() { return *local_address.get(); }
+    void set_local_address(o_addr l) { local_address = std::make_shared<o_addr>(l); }
+
+    unsigned get_num_neigh() { return *num_neigh.get(); }
+    void set_num_neigh(unsigned l) { num_neigh = std::make_shared<unsigned>(l); }
+
+    neigh_tuple* get_neighSet(unsigned l) { return neighSet[l].get(); }
+    void set_neighSet(unsigned idx, neigh_tuple nt)
+    {
+        neighSet[idx] = std::make_shared<neigh_tuple>(nt);
+    }
+
+    unsigned get_num_two_hop() { return *num_two_hop.get(); }
+    void set_num_two_hop(unsigned l) { num_two_hop = std::make_shared<unsigned>(l); }
+
+    two_hop_neigh_tuple* get_twoHopSet(unsigned l) { return twoHopSet[l].get(); }
+    void set_twoHopSet(unsigned idx, two_hop_neigh_tuple nt)
+    {
+        twoHopSet[idx] = std::make_shared<two_hop_neigh_tuple>(nt);
+    }
+
+    unsigned get_num_mpr() { return *num_mpr.get(); }
+    void set_num_mpr(unsigned l) { num_mpr = std::make_shared<unsigned>(l); }
+
+    o_addr get_MprSet(unsigned l) { return *mprSet[l].get(); }
+    void set_MprSet(unsigned idx, o_addr nt)
+    {
+        mprSet[idx] = std::make_shared<o_addr>(nt);
+    }
+
+    unsigned get_num_mpr_sel() { return *num_mpr_sel.get(); }
+    void set_num_mpr_sel(unsigned l) { num_mpr_sel = std::make_shared<unsigned>(l); }
+
+    mpr_sel_tuple get_MprSelSet(unsigned l) { return *mprSelSet[l].get(); }
+    void set_MprSelSet(unsigned idx, mpr_sel_tuple nt)
+    {
+        mprSelSet[idx] = std::make_shared<mpr_sel_tuple>(nt);
+    }
+
+    unsigned get_num_top_set() { return *num_top_set.get(); }
+    void set_num_top_set(unsigned l) { num_top_set = std::make_shared<unsigned>(l); }
+
+    top_tuple* get_topSet(unsigned l) { return topSet[l].get(); }
+    void set_topSet(unsigned idx, top_tuple nt)
+    {
+        topSet[idx] = std::make_shared<top_tuple>(nt);
+    }
     // vector<LinkTuple>
     //link_tuple linkSet[OLSR_MAX_NEIGHBORS];
     //unsigned num_tuples;
-    
-    // vector<NeighborTuple>
-    neigh_tuple neighSet[OLSR_MAX_NEIGHBORS];
-    unsigned num_neigh;
-    // vector<TwoHopNeighborTuple>
-    two_hop_neigh_tuple twoHopSet[OLSR_MAX_2_HOP];
-    unsigned num_two_hop;
-    // set<Ipv4Address>
-    o_addr mprSet[OLSR_MAX_NEIGHBORS];
-    unsigned num_mpr;
-    // vector<MprSelectorTuple>
-    mpr_sel_tuple mprSelSet[OLSR_MAX_NEIGHBORS];
-    unsigned num_mpr_sel;
-    // vector<TopologyTuple>
-    top_tuple topSet[OLSR_MAX_TOP_TUPLES];
-    unsigned num_top_set;
+
+
+
+
+
     // vector<RoutingTableEntry>
     RT_entry route_table[OLSR_MAX_ROUTES];
     unsigned num_routes;
@@ -312,8 +377,19 @@ typedef struct /*OlsrState */
     // Not part of the state in ns3 but fits here mostly
     uint16_t ansn;
     int SA_per_node[OLSR_MAX_NEIGHBORS];
+
+    node_state() = default;
+    node_state(const node_state &a) = default;
+
+    node_state(node_state&& rhs) = default;              // move constructor
+    node_state& operator=(node_state&& rhs) = default;   // move assignment operator
+
+    node_state * clone() const override
+    {
+        return new node_state(*this);
+    }
     
-} node_state;
+};
 
 union message_type {
     hello h;

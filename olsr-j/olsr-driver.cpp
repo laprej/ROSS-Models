@@ -119,83 +119,83 @@ void olsr_init(node_state *s, tw_lp *lp)
 #endif
 
     //s->num_tuples = 0;
-    s->num_neigh  = 0;
-    s->num_two_hop = 0;
-    s->num_mpr = 0;
-    s->num_mpr_sel = 0;
-    s->num_top_set = 0;
+    s->set_num_neigh(0);
+    s->set_num_two_hop(0);
+    s->set_num_mpr(0);
+    s->set_num_mpr_sel(0);
+    s->set_num_top_set(0);
     s->num_dupes = 0;
     for (i = 0; i < OLSR_MAX_NEIGHBORS; i++) {
         s->SA_per_node[i] = 0;
     }
     // Now we store the GID as opposed to an int from 0-OMN
-    s->local_address = lp->gid;// % OLSR_MAX_NEIGHBORS;
-    s->lng = tw_rand_unif(lp->rng) * GRID_MAX;
-    s->lat = tw_rand_unif(lp->rng) * GRID_MAX;
+    s->set_local_address(lp->gid);// % OLSR_MAX_NEIGHBORS;
+    s->set_lng(tw_rand_unif(&lp->cur_state->rng) * GRID_MAX);
+    s->set_lat(tw_rand_unif(&lp->cur_state->rng) * GRID_MAX);
     // printf("Initializing node %lu on CPU %llu\n", lp->gid, lp->pe->id);
 
     //g_X[s->local_address] = s->lng;
     //g_Y[s->local_address] = s->lat;
     // Build our initial HELLO_TX messages
-    ts = g_tw_lookahead + tw_rand_unif(lp->rng) * STAGGER_MAX;
+    ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * STAGGER_MAX;
     e = tw_event_new(lp->gid, ts, lp);
-    msg = tw_event_data(e);
+    msg = (olsr_msg_data*)tw_event_data(e);
     msg->type = HELLO_TX;
-    msg->originator = s->local_address;
-    msg->lng = s->lng;
-    msg->lat = s->lat;
+    msg->originator = s->get_local_address();
+    msg->lng = s->get_lng();
+    msg->lat = s->get_lat();
     h = &msg->mt.h;
     h->num_neighbors = 0;
     tw_event_send(e);
 
     // Build our initial TC_TX messages
-    ts = g_tw_lookahead + tw_rand_unif(lp->rng) * STAGGER_MAX;
+    ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * STAGGER_MAX;
     e = tw_event_new(lp->gid, ts, lp);
-    msg = tw_event_data(e);
+    msg = (olsr_msg_data*)tw_event_data(e);
     msg->type = TC_TX;
-    msg->originator = s->local_address;
-    msg->lng = s->lng;
-    msg->lat = s->lat;
+    msg->originator = s->get_local_address();
+    msg->lng = s->get_lng();
+    msg->lat = s->get_lat();
     t = &msg->mt.t;
     //t->num_mpr_sel = 0;
     t->num_neighbors = 0;
     tw_event_send(e);
 
     // Build our initial SA_TX messages
-    ts = g_tw_lookahead + tw_rand_unif(lp->rng) * STAGGER_MAX + SA_INTERVAL;
+    ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * STAGGER_MAX + SA_INTERVAL;
     e = tw_event_new(lp->gid, ts, lp);
-    msg = tw_event_data(e);
+    msg = (olsr_msg_data*)tw_event_data(e);
     msg->type = SA_TX;
-    msg->originator = s->local_address;
+    msg->originator = s->get_local_address();
     msg->destination = MASTER_NODE;
-    msg->lng = s->lng;
-    msg->lat = s->lat;
+    msg->lng = s->get_lng();
+    msg->lat = s->get_lat();
     tw_event_send(e);
 
     if (g_olsr_mobility != 'n' && g_olsr_mobility != 'N') {
         // Build our initial RWALK_CHANGE messages
-        ts = g_tw_lookahead + tw_rand_unif(lp->rng) * RWALK_INTERVAL + 1.0;
+        ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * RWALK_INTERVAL + 1.0;
         e = tw_event_new(lp->gid, ts, lp);
-        msg = tw_event_data(e);
+        msg = (olsr_msg_data*)tw_event_data(e);
         msg->type = RWALK_CHANGE;
-        msg->lng = tw_rand_unif(lp->rng) * GRID_MAX;
-        msg->lat = tw_rand_unif(lp->rng) * GRID_MAX;
+        msg->lng = tw_rand_unif(&lp->cur_state->rng) * GRID_MAX;
+        msg->lat = tw_rand_unif(&lp->cur_state->rng) * GRID_MAX;
         tw_event_send(e);
     }
 
 #if 1 /* Source of instability if done naively */
     // Build our initial SA_MASTER_TX messages
-    if (s->local_address == MASTER_NODE) {
-        ts = g_tw_lookahead + tw_rand_unif(lp->rng) * MASTER_SA_INTERVAL + MASTER_SA_INTERVAL;
+    if (s->get_local_address() == MASTER_NODE) {
+        ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * MASTER_SA_INTERVAL + MASTER_SA_INTERVAL;
         e = tw_event_new(lp->gid, ts, lp);
         //e = tw_event_new(sa_master_for_level(lp->gid), ts, lp);
-        msg = tw_event_data(e);
+        msg = (olsr_msg_data*)tw_event_data(e);
         msg->type = SA_MASTER_TX;
-        msg->originator = s->local_address;
+        msg->originator = s->get_local_address();
         // Always send these to node zero, who receives all SA_MASTER msgs
         msg->destination = sa_master_for_level(lp->gid);
-        msg->lng = s->lng;
-        msg->lat = s->lat;
+        msg->lng = s->get_lng();
+        msg->lat = s->get_lat();
         tw_event_send(e);
     }
 #endif
@@ -208,7 +208,7 @@ void sa_master_init(node_state *s, tw_lp *lp)
   rng_write_state( lp->rng, olsr_event_log );
 #endif
 
-    s->local_address = lp->gid;
+    s->set_local_address(lp->gid);
     //printf("I am an SA master and my local_address is %lu\n", s->local_address);
 }
 
@@ -252,13 +252,13 @@ DoCalcRxPower (double txPowerDbm,
 
     double sender_lng = m->lng;
     double sender_lat = m->lat;
-    double receiver_lng = s->lng;
-    double receiver_lat = s->lat;
+    double receiver_lng = s->get_lng();
+    double receiver_lat = s->get_lat();
 
     // We have to make sure that everyone is in the same region even though
     // they may have overlapping x/y coordinates, i.e. a region describes the
     // local plane of existence for the nodes
-    assert(region(s->local_address) == region(m->originator));
+    assert(region(s->get_local_address()) == region(m->originator));
 
     double distance = (sender_lng - receiver_lng) * (sender_lng - receiver_lng);
     distance += (sender_lat - receiver_lat) * (sender_lat - receiver_lat);
@@ -289,13 +289,13 @@ static inline int out_of_radio_range(node_state *s, olsr_msg_data *m)
 
     double sender_lng = m->lng;
     double sender_lat = m->lat;
-    double receiver_lng = s->lng;
-    double receiver_lat = s->lat;
+    double receiver_lng = s->get_lng();
+    double receiver_lat = s->get_lat();
 
     // We have to make sure that everyone is in the same region even though
     // they may have overlapping x/y coordinates, i.e. a region describes the
     // local plane of existence for the nodes
-    assert(region(s->local_address) == region(m->originator));
+    assert(region(s->get_local_address()) == region(m->originator));
 
     double dist = (sender_lng - receiver_lng) * (sender_lng - receiver_lng);
     dist += (sender_lat - receiver_lat) * (sender_lat - receiver_lat);
@@ -331,11 +331,11 @@ static inline unsigned Dy(node_state *s, o_addr target)
     o_addr temp[OLSR_MAX_NEIGHBORS];
     int temp_size = 0;
 
-    for (i = 0; i < s->num_two_hop; i++) {
+    for (i = 0; i < s->get_num_two_hop(); i++) {
 
         in = 0;
-        for (j = 0; j < s->num_neigh; j++) {
-            if (s->twoHopSet[i].twoHopNeighborAddr == s->neighSet[j].neighborMainAddr) {
+        for (j = 0; j < s->get_num_neigh(); j++) {
+            if (s->get_twoHopSet(i)->twoHopNeighborAddr == s->get_neighSet(j)->neighborMainAddr) {
                 // EXCLUDING all members of N...
                 in = 1;
                 continue;
@@ -344,17 +344,17 @@ static inline unsigned Dy(node_state *s, o_addr target)
 
         if (in) continue;
 
-        if (s->twoHopSet[i].neighborMainAddr == target) {
+        if (s->get_twoHopSet(i)->neighborMainAddr == target) {
             in = 0;
             // Add s->twoHopSet[i].twoHopNeighborAddr to this set
             for (j = 0; j < temp_size; j++) {
-                if (temp[j] == s->twoHopSet[i].twoHopNeighborAddr) {
+                if (temp[j] == s->get_twoHopSet(i)->twoHopNeighborAddr) {
                     in = 1;
                 }
             }
 
             if (!in) {
-                temp[temp_size] = s->twoHopSet[i].twoHopNeighborAddr;
+                temp[temp_size] = s->get_twoHopSet(i)->twoHopNeighborAddr;
                 temp_size++;
                 assert(temp_size < OLSR_MAX_NEIGHBORS);
             }
@@ -400,11 +400,11 @@ void mpr_set_uniq(node_state *s)
 
     // Presumably if we just added a MPR, we only need to check all the
     // others against the last one
-    o_addr last = s->mprSet[s->num_mpr-1];
+    o_addr last = s->get_MprSet(s->get_num_mpr()-1);
 
-    for (i = 0; i < s->num_mpr - 1; i++) {
-        if (s->mprSet[i] == last) {
-            s->num_mpr--;
+    for (i = 0; i < s->get_num_mpr() - 1; i++) {
+        if (s->get_MprSet(i) == last) {
+            s->set_num_mpr(s->get_num_mpr() - 1);
             return;
         }
     }
@@ -419,11 +419,11 @@ void mpr_sel_set_uniq(node_state *s)
 
     // Presumably if we just added a MPR, we only need to check all the
     // others against the last one
-    o_addr last = s->mprSelSet[s->num_mpr_sel-1].mainAddr;
+    o_addr last = s->get_MprSelSet(s->get_num_mpr_sel()-1).mainAddr;
 
-    for (i = 0; i < s->num_mpr_sel - 1; i++) {
-        if (s->mprSelSet[i].mainAddr == last) {
-            s->num_mpr_sel--;
+    for (i = 0; i < s->get_num_mpr_sel() - 1; i++) {
+        if (s->get_MprSelSet(i).mainAddr == last) {
+            s->set_num_mpr_sel(s->get_num_mpr_sel() - 1);
             return;
         }
     }
@@ -438,9 +438,9 @@ top_tuple * FindNewerTopologyTuple(o_addr last, uint16_t ansn, node_state *s)
 {
     int i;
 
-    for (i = 0; i < s->num_top_set; i++) {
-        if (s->topSet[i].lastAddr == last && s->topSet[i].sequenceNumber > ansn)
-            return &s->topSet[i];
+    for (i = 0; i < s->get_num_top_set(); i++) {
+        if (s->get_topSet(i)->lastAddr == last && s->get_topSet(i)->sequenceNumber > ansn)
+            return s->get_topSet(i);
     }
 
     return NULL;
@@ -456,8 +456,8 @@ void EraseOlderTopologyTuples(o_addr last, uint16_t ansn, node_state *s)
 
     while (1) {
         index_to_remove = -1;
-        for (i = 0; i < s->num_top_set; i++) {
-            if (s->topSet[i].lastAddr == last && s->topSet[i].sequenceNumber < ansn) {
+        for (i = 0; i < s->get_num_top_set(); i++) {
+            if (s->get_topSet(i)->lastAddr == last && s->get_topSet(i)->sequenceNumber < ansn) {
                 index_to_remove = i;
                 break;
             }
@@ -465,11 +465,11 @@ void EraseOlderTopologyTuples(o_addr last, uint16_t ansn, node_state *s)
 
         if (index_to_remove == -1) break;
 
-        s->topSet[index_to_remove].destAddr = s->topSet[s->num_top_set-1].destAddr;
-        s->topSet[index_to_remove].expirationTime = s->topSet[s->num_top_set-1].expirationTime;
-        s->topSet[index_to_remove].lastAddr = s->topSet[s->num_top_set-1].lastAddr;
-        s->topSet[index_to_remove].sequenceNumber = s->topSet[s->num_top_set-1].sequenceNumber;
-        s->num_top_set--;
+        s->get_topSet(index_to_remove)->destAddr = s->get_topSet(s->get_num_top_set()-1)->destAddr;
+        s->get_topSet(index_to_remove)->expirationTime = s->get_topSet(s->get_num_top_set()-1)->expirationTime;
+        s->get_topSet(index_to_remove)->lastAddr = s->get_topSet(s->get_num_top_set()-1)->lastAddr;
+        s->get_topSet(index_to_remove)->sequenceNumber = s->get_topSet(s->get_num_top_set()-1)->sequenceNumber;
+        s->set_num_top_set(s->get_num_top_set() - 1);
     }
 }
 
@@ -480,9 +480,9 @@ top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr, node_state *s)
 {
     int i;
 
-    for (i = 0; i < s->num_top_set; i++) {
-        if (s->topSet[i].destAddr == destAddr && s->topSet[i].lastAddr == lastAddr) {
-            return &s->topSet[i];
+    for (i = 0; i < s->get_num_top_set(); i++) {
+        if (s->get_topSet(i)->destAddr == destAddr && s->get_topSet(i)->lastAddr == lastAddr) {
+            return s->get_topSet(i);
         }
     }
 
@@ -493,9 +493,9 @@ neigh_tuple * FindSymNeighborTuple(node_state *s, o_addr mainAddr)
 {
     int i;
 
-    for (i = 0; i < s->num_neigh; i++) {
-        if (s->neighSet[i].neighborMainAddr == mainAddr) {
-            return &s->neighSet[i];
+    for (i = 0; i < s->get_num_neigh(); i++) {
+        if (s->get_neighSet(i)->neighborMainAddr == mainAddr) {
+            return s->get_neighSet(i);
         }
     }
 
@@ -530,9 +530,9 @@ void RoutingTableComputation(node_state *s)
 
     // 2. The new routing entries are added starting with the
     // symmetric neighbors (h=1) as the destination nodes.
-    for (i = 0; i < s->num_neigh; i++) {
-        s->route_table[s->num_routes].destAddr = s->neighSet[i].neighborMainAddr;
-        s->route_table[s->num_routes].nextAddr = s->neighSet[i].neighborMainAddr;
+    for (i = 0; i < s->get_num_neigh(); i++) {
+        s->route_table[s->num_routes].destAddr = s->get_neighSet(i)->neighborMainAddr;
+        s->route_table[s->num_routes].nextAddr = s->get_neighSet(i)->neighborMainAddr;
         s->route_table[s->num_routes].distance = 1;
         s->num_routes++;
         assert(s->num_routes < OLSR_MAX_ROUTES);
@@ -543,13 +543,13 @@ void RoutingTableComputation(node_state *s)
     //  least one entry in the 2-hop neighbor set where
     //  N_neighbor_main_addr correspond to a neighbor node with
     //  willingness different of WILL_NEVER,
-    for (i = 0; i < s->num_two_hop; i++) {
+    for (i = 0; i < s->get_num_two_hop(); i++) {
 
-        if (FindSymNeighborTuple(s, s->twoHopSet[i].twoHopNeighborAddr)) {
+        if (FindSymNeighborTuple(s, s->get_twoHopSet(i)->twoHopNeighborAddr)) {
             continue;
         }
 
-        if (s->twoHopSet[i].twoHopNeighborAddr == s->local_address) {
+        if (s->get_twoHopSet(i)->twoHopNeighborAddr == s->get_local_address()) {
             continue;
         }
 
@@ -564,8 +564,8 @@ void RoutingTableComputation(node_state *s)
         //                               routing table with:
         //                                   R_dest_addr == N_neighbor_main_addr
         //                                                  of the 2-hop tuple;
-        if ((route = Lookup(s, s->twoHopSet[i].neighborMainAddr))) {
-            s->route_table[s->num_routes].destAddr = s->twoHopSet[i].twoHopNeighborAddr;
+        if ((route = Lookup(s, s->get_twoHopSet(i)->neighborMainAddr))) {
+            s->route_table[s->num_routes].destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
             s->route_table[s->num_routes].nextAddr = route->nextAddr;
             s->route_table[s->num_routes].distance = 2;
             s->num_routes++;
@@ -582,12 +582,12 @@ void RoutingTableComputation(node_state *s)
     for (h = 2; ; h++) {
         int added = 0;
 
-        for (i = 0; i < s->num_top_set; i++) {
+        for (i = 0; i < s->get_num_top_set(); i++) {
             //printf("Looking at node %lu top_tuple[%d] dest: %lu, last: %lu, seq: %d\n", s->local_address, i, s->topSet[i].destAddr, s->topSet[i].lastAddr, s->topSet[i].sequenceNumber);
-            RT_entry *destAddrEntry = Lookup(s, s->topSet[i].destAddr);
-            RT_entry *lastAddrEntry = Lookup(s, s->topSet[i].lastAddr);
+            RT_entry *destAddrEntry = Lookup(s, s->get_topSet(i)->destAddr);
+            RT_entry *lastAddrEntry = Lookup(s, s->get_topSet(i)->lastAddr);
             if (!destAddrEntry && lastAddrEntry && lastAddrEntry->distance == h) {
-                s->route_table[s->num_routes].destAddr = s->topSet[i].destAddr;
+                s->route_table[s->num_routes].destAddr = s->get_topSet(i)->destAddr;
                 s->route_table[s->num_routes].nextAddr = lastAddrEntry->nextAddr;
                 s->route_table[s->num_routes].distance = h + 1;
                 s->num_routes++;
@@ -746,24 +746,24 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
     // of a MPR selector of this node and ttl is greater than 1,
     // the message must be retransmitted
     int retransmitted = 0;
-    for (i = 0; i < s->num_mpr_sel; i++) {
-        if (s->mprSelSet[i].mainAddr == senderAddress) {
+    for (i = 0; i < s->get_num_mpr_sel(); i++) {
+        if (s->get_MprSelSet(i).mainAddr == senderAddress) {
             // Round-robin-RX
             // Might want to rename HELLO_DELTA...
-            ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
             // ts += 1;
 
-            cur_lp = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS);
+            cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             e = tw_event_new(cur_lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = TC_RX;
             msg->ttl = olsrMessage->ttl - 1;
             msg->originator = olsrMessage->originator;
-            msg->sender = s->local_address;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
-            msg->target = region(s->local_address) * OLSR_MAX_NEIGHBORS;
+            msg->sender = s->get_local_address();
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
+            msg->target = region(s->get_local_address()) * OLSR_MAX_NEIGHBORS;
             t = &msg->mt.t;
             t->ansn = olsrMessage->mt.t.ansn;
             //t->num_mpr_sel = olsrMessage->mt.t.num_mpr_sel;
@@ -806,10 +806,10 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
 
 void route_packet(node_state *s, tw_event *e)
 {
-    olsr_msg_data *m = tw_event_data(e);
+    olsr_msg_data *m = (olsr_msg_data*)tw_event_data(e);
     RT_entry * route = Lookup(s, m->destination);
     if (route == NULL) {
-        printf("Node %llu doesn't have a route to %llu\n", s->local_address, m->destination);
+        printf("Node %llu doesn't have a route to %llu\n", s->get_local_address(), m->destination);
         return;
     }
 
@@ -873,27 +873,27 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
     switch(m->type) {
         case HELLO_TX:
         {
-            ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
-            cur_lp = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS);
+            cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             e = tw_event_new(cur_lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = HELLO_RX;
             msg->originator = m->originator;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
-            msg->target = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS)->gid;
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
+            msg->target = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS)->gid;
             h = &msg->mt.h;
-            h->num_neighbors = s->num_neigh;// + 1;
+            h->num_neighbors = s->get_num_neigh();// + 1;
             //h->neighbor_addrs[0] = s->local_address;
-            for (j = 0; j < s->num_neigh; j++) {
-                h->neighbor_addrs[j] = s->neighSet[j].neighborMainAddr;
+            for (j = 0; j < s->get_num_neigh(); j++) {
+                h->neighbor_addrs[j] = s->get_neighSet(j)->neighborMainAddr;
                 // If s->neighSet[j].neighborMainAddr is our MPR, we need
                 // to set this appropriately
                 is_mpr = 0;
-                for (k = 0; k < s->num_mpr; k++) {
-                    if (s->mprSet[k] == s->neighSet[j].neighborMainAddr) {
+                for (k = 0; k < s->get_num_mpr(); k++) {
+                    if (s->get_MprSet(k) == s->get_neighSet(j)->neighborMainAddr) {
                         is_mpr = 1;
                     }
                 }
@@ -907,11 +907,11 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             tw_event_send(e);
 
             e = tw_event_new(lp->gid, HELLO_INTERVAL, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = HELLO_TX;
-            msg->originator = s->local_address;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
+            msg->originator = s->get_local_address();
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
             h = &msg->mt.h;
             h->num_neighbors = 0;//1;
             //h->neighbor_addrs[0] = s->local_address;
@@ -930,13 +930,13 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 
             // Copy the message we just received; we can't add data to
             // a message sent by another node
-            if (m->target < region(s->local_address)*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
-                ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            if (m->target < region(s->get_local_address())*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
+                ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
                 tw_lp *cur_lp = tw_getlocal_lp(m->target + 1);
 
                 e = tw_event_new(cur_lp->gid, ts, lp);
-                msg = tw_event_data(e);
+                msg = (olsr_msg_data*)tw_event_data(e);
                 msg->type = HELLO_RX;
                 msg->originator = m->originator;
                 msg->sender = m->sender;
@@ -962,22 +962,24 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 return;
             }
 
-            if (s->local_address == m->originator) {
+            if (s->get_local_address() == m->originator) {
                 return;
             }
 
             // BEGIN 1-HOP PROCESSING
-            for (i = 0; i < s->num_neigh; i++) {
-                if (s->neighSet[i].neighborMainAddr == m->originator) {
+            for (i = 0; i < s->get_num_neigh(); i++) {
+                if (s->get_neighSet(i)->neighborMainAddr == m->originator) {
                     in = 1;
                 }
             }
 
             if (!in) {
-                s->neighSet[s->num_neigh].neighborMainAddr = m->originator;
-                s->num_neigh++;
-                assert(s->num_neigh < OLSR_MAX_NEIGHBORS);
-                assert(region(s->local_address) == region(m->originator));
+                neigh_tuple nt;
+                nt.neighborMainAddr = m->originator;
+                s->set_neighSet(s->get_num_neigh(), nt);
+                s->set_num_neigh(s->get_num_neigh() + 1);
+                assert(s->get_num_neigh() < OLSR_MAX_NEIGHBORS);
+                assert(region(s->get_local_address()) == region(m->originator));
                 s->ansn++;
             }
             // END 1-HOP PROCESSING
@@ -987,7 +989,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             h = &m->mt.h;
 
             for (i = 0; i < h->num_neighbors; i++) {
-                if (s->local_address == h->neighbor_addrs[i]) {
+                if (s->get_local_address() == h->neighbor_addrs[i]) {
                     // We are not going to be our own 2-hop neighbor!
                     continue;
                 }
@@ -995,19 +997,21 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 // Check and see if h->neighbor_addrs[i] is in our list
                 // already
                 in = 0;
-                for (j = 0; j < s->num_two_hop; j++) {
-                    if (s->twoHopSet[j].neighborMainAddr == m->originator &&
-                        s->twoHopSet[j].twoHopNeighborAddr == h->neighbor_addrs[i]) {
+                for (j = 0; j < s->get_num_two_hop(); j++) {
+                    if (s->get_twoHopSet(j)->neighborMainAddr == m->originator &&
+                        s->get_twoHopSet(j)->twoHopNeighborAddr == h->neighbor_addrs[i]) {
                         in = 1;
                     }
                 }
 
                 if (!in) {
-                    s->twoHopSet[s->num_two_hop].neighborMainAddr = m->originator;
-                    s->twoHopSet[s->num_two_hop].twoHopNeighborAddr = h->neighbor_addrs[i];
+                    two_hop_neigh_tuple nt;
+                    nt.neighborMainAddr = m->originator;
+                    nt.twoHopNeighborAddr = h->neighbor_addrs[i];
+                    s->set_twoHopSet(s->get_num_two_hop(), nt);
                     assert(s->twoHopSet[s->num_two_hop].neighborMainAddr !=
                            s->twoHopSet[s->num_two_hop].twoHopNeighborAddr);
-                    s->num_two_hop++;
+                    s->set_num_two_hop(s->get_num_two_hop() + 1);
                     assert(s->num_two_hop < OLSR_MAX_2_HOP);
                 }
             }
@@ -1018,17 +1022,17 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 
             // Initially no nodes are covered
             memset(g_covered, 0, BITNSLOTS(OLSR_MAX_NEIGHBORS));
-            s->num_mpr = 0;
+            s->set_num_mpr(0);
 
             // Copy all relevant information to scratch space
-            g_num_one_hop = s->num_neigh;
+            g_num_one_hop = s->get_num_neigh();
             for (i = 0; i < g_num_one_hop; i++) {
-                g_mpr_one_hop[i] = s->neighSet[i];
+                g_mpr_one_hop[i] = *s->get_neighSet(i);
             }
 
-            g_num_two_hop = s->num_two_hop;
+            g_num_two_hop = s->get_num_two_hop();
             for (i = 0; i < g_num_two_hop; i++) {
-                g_mpr_two_hop[i] = s->twoHopSet[i];
+                g_mpr_two_hop[i] = *s->get_twoHopSet(i);
             }
 
             // Calculate D(y), where y is a member of N, for all nodes in N
@@ -1096,8 +1100,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 }
 
                 if (onlyOne) {
-                    s->mprSet[s->num_mpr] = g_mpr_two_hop[i].neighborMainAddr;
-                    s->num_mpr++;
+                    s->set_MprSet(s->get_num_mpr(), g_mpr_two_hop[i].neighborMainAddr);
+                    s->set_num_mpr(s->get_num_mpr() + 1);
                     assert(s->num_mpr < OLSR_MAX_NEIGHBORS);
                     // Make sure they're all unique!
                     mpr_set_uniq(s);
@@ -1109,7 +1113,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                             // We don't do that, we use bitfields.  Make sure
                             // our assumptions are correct then create a mask
                             //printf("%lu\n", g_mpr_two_hop[j].neighborMainAddr);
-                            assert(region(g_mpr_two_hop[j].neighborMainAddr) == region(s->local_address));
+                            assert(region(g_mpr_two_hop[j].neighborMainAddr) == region(s->get_local_address()));
                             BITSET(g_covered, g_mpr_two_hop[j].twoHopNeighborAddr % OLSR_MAX_NEIGHBORS);
                         }
                     }
@@ -1177,7 +1181,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                             r++;
                     }
                     // Make sure our neighbors are from our region
-                    assert(region(g_mpr_one_hop[i].neighborMainAddr) == region(s->local_address));
+                    assert(region(g_mpr_one_hop[i].neighborMainAddr) == region(s->get_local_address()));
                     g_reachability[i] = r;
                 }
 
@@ -1247,8 +1251,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 }
 
                 if (max > 0) {
-                    s->mprSet[s->num_mpr] = g_mpr_neigh_to_add.neighborMainAddr;
-                    s->num_mpr++;
+                    s->set_MprSet(s->get_num_mpr(), g_mpr_neigh_to_add.neighborMainAddr);
+                    s->set_num_mpr(s->get_num_mpr() + 1);
                     assert(s->num_mpr < OLSR_MAX_NEIGHBORS);
                     // Make sure they're all unique!
                     mpr_set_uniq(s);
@@ -1259,7 +1263,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                             //coveredTwoHopNeighbors.insert (otherTwoHopNeigh->twoHopNeighborAddr);
                             // We don't do that, we use bitfields.  Make sure
                             // our assumptions are correct then create a mask
-                            assert(region(g_mpr_two_hop[j].neighborMainAddr) == region(s->local_address));
+                            assert(region(g_mpr_two_hop[j].neighborMainAddr) == region(s->get_local_address()));
                             BITSET(g_covered, g_mpr_two_hop[j].twoHopNeighborAddr % OLSR_MAX_NEIGHBORS);
                         }
                     }
@@ -1285,10 +1289,12 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             for (i = 0; i < h->num_neighbors; i++) {
                 if (h->is_mpr[i]) {
                     // Check if it contains OUR address
-                    if (h->neighbor_addrs[i] == s->local_address) {
+                    if (h->neighbor_addrs[i] == s->get_local_address()) {
                         // We should add this guy to the selector set
-                        s->mprSelSet[s->num_mpr_sel].mainAddr = m->originator;
-                        s->num_mpr_sel++;
+                        mpr_sel_tuple nt;
+                        nt.mainAddr = m->originator;
+                        s->set_MprSelSet(s->get_num_mpr_sel(), nt);
+                        s->set_num_mpr_sel(s->get_num_mpr_sel() + 1);
                         assert(s->num_mpr_sel <= OLSR_MAX_NEIGHBORS);
                         mpr_sel_set_uniq(s);
                     }
@@ -1302,25 +1308,25 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
         case TC_TX:
         {
             // Might want to rename HELLO_DELTA...
-            ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
-            cur_lp = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS);
+            cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             e = tw_event_new(cur_lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = TC_RX;
             msg->ttl = 255;
             msg->originator = m->originator;
-            msg->sender = s->local_address;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
-            msg->target = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS)->gid;
+            msg->sender = s->get_local_address();
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
+            msg->target = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS)->gid;
             t = &msg->mt.t;
             t->ansn = s->ansn;
             //t->num_mpr_sel = s->num_mpr_sel;
-            t->num_neighbors = s->num_neigh;
-            for (j = 0; j < s->num_neigh; j++) {
-                t->neighborAddresses[j] = s->neighSet[j].neighborMainAddr;
+            t->num_neighbors = s->get_num_neigh();
+            for (j = 0; j < s->get_num_neigh(); j++) {
+                t->neighborAddresses[j] = s->get_neighSet(j)->neighborMainAddr;
             }
             //if (s->num_mpr_sel > 0) {
             //printTC(t);
@@ -1329,11 +1335,11 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             //tw_event_send(e);
 
             e = tw_event_new(lp->gid, TC_INTERVAL, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = TC_TX;
-            msg->originator = s->local_address;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
+            msg->originator = s->get_local_address();
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
             t = &msg->mt.t;
             //t->num_mpr_sel = 0;
             t->num_neighbors = 0;
@@ -1360,13 +1366,13 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             // Copy the message we just received; we can't add data to
             // a message sent by another node
 
-            if (m->target < region(s->local_address)*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
-                ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            if (m->target < region(s->get_local_address())*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
+                ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
                 tw_lp *cur_lp = tw_getlocal_lp(m->target + 1);
 
                 e = tw_event_new(cur_lp->gid, ts, lp);
-                msg = tw_event_data(e);
+                msg = (olsr_msg_data*)tw_event_data(e);
                 msg->type = TC_RX;
                 msg->ttl = m->ttl;
                 msg->originator = m->originator;
@@ -1394,7 +1400,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 return;
             }
 
-            if (s->local_address == m->originator) {
+            if (s->get_local_address() == m->originator) {
                 return;
             }
 
@@ -1407,14 +1413,14 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 //break;
             }
 
-            ForwardDefault(m, duplicated, s->local_address, m->sender, s, lp);
+            ForwardDefault(m, duplicated, s->get_local_address(), m->sender, s, lp);
 
             in = 0;
 
             // 1. If the sender interface of this message is not in the symmetric
             // 1-hop neighborhood of this node, the message MUST be discarded.
-            for (i = 0; i < s->num_neigh; i++) {
-                if (m->sender == s->neighSet[i].neighborMainAddr)
+            for (i = 0; i < s->get_num_neigh(); i++) {
+                if (m->sender == s->get_neighSet(i)->neighborMainAddr)
                     in = 1;
             }
 
@@ -1460,12 +1466,12 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     //	T_last_addr = originator address,
                     //	T_seq       = ANSN,
                     //	T_time      = current time + validity time.
-                    s->topSet[s->num_top_set].destAddr = addr;
-                    s->topSet[s->num_top_set].lastAddr = m->originator;
-                    s->topSet[s->num_top_set].sequenceNumber = m->mt.t.ansn;
+                    s->topSet[s->get_num_top_set()].destAddr = addr;
+                    s->topSet[s->get_num_top_set()].lastAddr = m->originator;
+                    s->topSet[s->get_num_top_set()].sequenceNumber = m->mt.t.ansn;
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
-                    s->topSet[s->num_top_set].expirationTime = tw_now(lp) + TOP_HOLD_TIME;
-                    s->num_top_set++;
+                    s->topSet[s->get_num_top_set()].expirationTime = tw_now(lp) + TOP_HOLD_TIME;
+                    s->set_num_top_set(s->get_num_top_set() + 1);
                     assert(s->num_top_set < OLSR_MAX_TOP_TUPLES);
                 }
             }
@@ -1486,26 +1492,26 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             // Schedule ourselves again...
             ts = SA_INTERVAL;
             e = tw_event_new(lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = SA_TX;
-            msg->originator = s->local_address;
+            msg->originator = s->get_local_address();
             msg->destination = MASTER_NODE;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
             tw_event_send(e);
 
 
             // Check and see if we are the destination...
-            if (m->destination == s->local_address) {
+            if (m->destination == s->get_local_address()) {
                 // This is the final stop
                 process_sa(s, m);
                 return;
             }
 
             // Might want to rename HELLO_DELTA...
-            ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
-            cur_lp = tw_getlocal_lp(region(s->local_address)*OLSR_MAX_NEIGHBORS);
+            cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             // If we don't have a route, don't allocate an event!
             if (Lookup(s, MASTER_NODE) == NULL) {
@@ -1513,15 +1519,15 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             }
 
             e = tw_event_new(cur_lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = SA_RX;
             msg->ttl = 255;
-            msg->originator = s->local_address;
-            msg->sender = s->local_address;
+            msg->originator = s->get_local_address();
+            msg->sender = s->get_local_address();
             msg->destination = MASTER_NODE;
-            msg->lng = s->lng;
-            msg->lat = s->lat;
-            msg->target = region(s->local_address) * OLSR_MAX_NEIGHBORS;
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
+            msg->target = region(s->get_local_address()) * OLSR_MAX_NEIGHBORS;
 
             route_packet(s, e);
 
@@ -1542,7 +1548,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             }
 
             // Check and see if we are the destination...
-            if (m->destination == s->local_address) {
+            if (m->destination == s->get_local_address()) {
                 // This is the final stop
                 process_sa(s, m);
                 return;
@@ -1551,13 +1557,13 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             // Copy the message we just received; we can't add data to
             // a message sent by another node
 
-            if (m->target < region(s->local_address)*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
-                ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+            if (m->target < region(s->get_local_address())*OLSR_MAX_NEIGHBORS+OLSR_MAX_NEIGHBORS-1) {
+                ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
 
                 tw_lp *cur_lp = tw_getlocal_lp(m->target + 1);
 
                 e = tw_event_new(cur_lp->gid, ts, lp);
-                msg = tw_event_data(e);
+                msg = (olsr_msg_data*)tw_event_data(e);
                 msg->type = SA_RX;
                 msg->ttl = m->ttl;
                 msg->originator = m->originator;
@@ -1586,26 +1592,26 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 return;
             }
 
-            if (s->local_address == m->originator) {
+            if (s->get_local_address() == m->originator) {
                 return;
             }
 
-            if (m->sender == s->local_address) {
+            if (m->sender == s->get_local_address()) {
                 // If we don't have a route, don't allocate an event!
                 if (Lookup(s, MASTER_NODE) == NULL) {
                     return;
                 }
 
-                ts = g_tw_lookahead + tw_rand_unif(lp->rng) * HELLO_DELTA;
+                ts = g_tw_lookahead + tw_rand_unif(&lp->cur_state->rng) * HELLO_DELTA;
                 e = tw_event_new(lp->gid, ts, lp);
-                msg = tw_event_data(e);
+                msg = (olsr_msg_data*)tw_event_data(e);
                 msg->type = SA_RX;
                 msg->ttl = m->ttl;
                 msg->originator = m->originator;
-                msg->sender = s->local_address;
+                msg->sender = s->get_local_address();
                 msg->destination = MASTER_NODE;
-                msg->lng = s->lng;
-                msg->lat = s->lat;
+                msg->lng = s->get_lng();
+                msg->lat = s->get_lat();
 
                 route_packet(s, e);
             }
@@ -1638,24 +1644,24 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             //printf("RECEIVED SA_MASTER_TX VALIDLY\n");
             //fflush(stdout);
             // Schedule ourselves again...
-            ts = MASTER_SA_INTERVAL + tw_rand_unif(lp->rng);
+            ts = MASTER_SA_INTERVAL + tw_rand_unif(&lp->cur_state->rng);
             e = tw_event_new(lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = SA_MASTER_TX;
-            msg->originator = s->local_address;
+            msg->originator = s->get_local_address();
             // Always send these to node zero, who receives all SA_MASTER msgs
             msg->destination = sa_master_for_level(lp->gid);
-            msg->lng = s->lng;
-            msg->lat = s->lat;
+            msg->lng = s->get_lng();
+            msg->lat = s->get_lat();
             tw_event_send(e);
 
             // Send a new SA_MASTER_RX to an SA Master
-            ts = 1.0 + tw_rand_unif(lp->rng);
+            ts = 1.0 + tw_rand_unif(&lp->cur_state->rng);
             e = tw_event_new(sa_master_for_level(lp->gid), ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = SA_MASTER_RX;
-            msg->originator = s->local_address;
-            msg->sender = s->local_address;
+            msg->originator = s->get_local_address();
+            msg->sender = s->get_local_address();
             msg->destination = sa_master_for_level(lp->gid);
             msg->level = 0;
 
@@ -1704,16 +1710,16 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
         {
             //printf("Changing our location to %f, %f\n",
             //       m->lng, m->lat);
-            s->lng = m->lng;
-            s->lat = m->lat;
+            s->set_lng(m->lng);
+            s->set_lat(m->lat);
 
             // Build our initial RWALK_CHANGE messages
-            ts = tw_rand_unif(lp->rng) * RWALK_INTERVAL + 1.0;
+            ts = tw_rand_unif(&lp->cur_state->rng) * RWALK_INTERVAL + 1.0;
             e = tw_event_new(lp->gid, ts, lp);
-            msg = tw_event_data(e);
+            msg = (olsr_msg_data*)tw_event_data(e);
             msg->type = RWALK_CHANGE;
-            msg->lng = tw_rand_unif(lp->rng) * GRID_MAX;
-            msg->lat = tw_rand_unif(lp->rng) * GRID_MAX;
+            msg->lng = tw_rand_unif(&lp->cur_state->rng) * GRID_MAX;
+            msg->lat = tw_rand_unif(&lp->cur_state->rng) * GRID_MAX;
             tw_event_send(e);
         }
 
@@ -1780,7 +1786,7 @@ void sa_master_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             //if (log2((nlp_per_pe - SA_range_start) * tw_nnodes()) > m->level) {
             if (x > m->level) {
                 // Send a new SA_MASTER_RX to an SA Master
-                ts = 1.0 + tw_rand_unif(lp->rng);
+                ts = 1.0 + tw_rand_unif(&lp->cur_state->rng);
                 dest = master_hierarchy(lp->gid, m->level+1);
 #if DEBUG
                 if (olsr_map(dest) != olsr_map(lp->gid)) {
@@ -1790,10 +1796,10 @@ void sa_master_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 #endif
 
                 e = tw_event_new(dest, ts, lp);
-                msg = tw_event_data(e);
+                msg = (olsr_msg_data*)tw_event_data(e);
                 msg->type = SA_MASTER_RX;
-                msg->originator = s->local_address;
-                msg->sender = s->local_address;
+                msg->originator = s->get_local_address();
+                msg->sender = s->get_local_address();
                 msg->destination = dest;
                 msg->level = m->level + 1;
                 tw_event_send(e);
@@ -1849,46 +1855,46 @@ void olsr_final(node_state *s, tw_lp *lp)
     if( OLSR_NO_FINAL_OUTPUT )
       return;
 
-    if (s->local_address % OLSR_MAX_NEIGHBORS == 0) {
+    if (s->get_local_address() % OLSR_MAX_NEIGHBORS == 0) {
         for (i = 0; i < OLSR_MAX_NEIGHBORS; i++) {
-            printf("node %llu had %d SA packets received.\n", s->local_address, s->SA_per_node[i]);
+            printf("node %llu had %d SA packets received.\n", s->get_local_address(), s->SA_per_node[i]);
         }
     }
 
-    printf("node %llu contains %d neighbors\n", s->local_address, s->num_neigh);
-    printf("x: %f   \ty: %f\n", s->lng, s->lat);
-    for (i = 0; i < s->num_neigh; i++) {
-        printf("   neighbor[%d] is %llu\n", i, s->neighSet[i].neighborMainAddr);
-        printf("   Dy(%llu) is %d\n", s->neighSet[i].neighborMainAddr,
-               Dy(s, s->neighSet[i].neighborMainAddr));
+    printf("node %llu contains %d neighbors\n", s->get_local_address(), s->get_num_neigh());
+    printf("x: %f   \ty: %f\n", s->get_lng(), s->get_lat());
+    for (i = 0; i < s->get_num_neigh(); i++) {
+        printf("   neighbor[%d] is %llu\n", i, s->get_neighSet(i)->neighborMainAddr);
+        printf("   Dy(%llu) is %d\n", s->get_neighSet(i)->neighborMainAddr,
+               Dy(s, s->get_neighSet(i)->neighborMainAddr));
     }
 
-    printf("node %llu has %d two-hop neighbors\n", s->local_address,
-           s->num_two_hop);
-    for (i = 0; i < s->num_two_hop; i++) {
+    printf("node %llu has %d two-hop neighbors\n", s->get_local_address(),
+           s->get_num_two_hop());
+    for (i = 0; i < s->get_num_two_hop(); i++) {
         printf("   two-hop neighbor[%d] is %llu : %llu\n", i,
-               s->twoHopSet[i].neighborMainAddr,
-               s->twoHopSet[i].twoHopNeighborAddr);
+               s->get_twoHopSet(i)->neighborMainAddr,
+               s->get_twoHopSet(i)->twoHopNeighborAddr);
     }
 
-    printf("node %llu has %d MPRs\n", s->local_address,
-           s->num_mpr);
-    for (i = 0; i < s->num_mpr; i++) {
+    printf("node %llu has %d MPRs\n", s->get_local_address(),
+           s->get_num_mpr());
+    for (i = 0; i < s->get_num_mpr(); i++) {
         printf("   MPR[%d] is %llu\n", i,
-               s->mprSet[i]);
+               s->get_MprSet(i));
     }
 
-    printf("node %llu had %d MPR selectors\n", s->local_address, s->num_mpr_sel);
+    printf("node %llu had %d MPR selectors\n", s->get_local_address(), s->get_num_mpr_sel());
 
-    printf("node %llu routing table\n", s->local_address);
+    printf("node %llu routing table\n", s->get_local_address());
     for (i = 0; i < s->num_routes; i++) {
         printf("   route[%d]: dest: %llu \t next %llu \t distance %d\n",
                i, s->route_table[i].destAddr,
                s->route_table[i].nextAddr, s->route_table[i].distance);
     }
 
-    printf("node %llu top tuples\n", s->local_address);
-    for (i = 0; i < s->num_top_set; i++) {
+    printf("node %llu top tuples\n", s->get_local_address());
+    for (i = 0; i < s->get_num_top_set(); i++) {
         printf("   top_tuple[%d] dest: %llu   last:  %llu   seq:   %d\n",
                i, s->topSet[i].destAddr, s->topSet[i].lastAddr, s->topSet[i].sequenceNumber);
     }
@@ -2034,6 +2040,9 @@ void null(void)
 
 }
 
+node_state ns;
+node_state sa_ns;
+
 tw_lptype olsr_lps[] = {
     // Our OLSR node handling functions
     {
@@ -2041,10 +2050,10 @@ tw_lptype olsr_lps[] = {
         (pre_run_f) NULL,
         (event_f) olsr_event,
         (revent_f) olsr_event_reverse,
-        (commit_f) NULL,
         (final_f) olsr_final,
         (map_f) olsr_map,
-        sizeof(node_state)
+        sizeof(node_state),
+        &ns
     },
     // Our SA aggregator handling functions
     {
@@ -2052,10 +2061,10 @@ tw_lptype olsr_lps[] = {
         (pre_run_f) NULL,
         (event_f) sa_master_event,
         (revent_f) sa_master_event_reverse,
-        (commit_f) NULL,
         (final_f) null,
         (map_f) olsr_map,
-        sizeof(node_state)
+        sizeof(node_state),
+        &sa_ns
     },
     { 0 },
 };
