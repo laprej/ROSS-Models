@@ -309,6 +309,10 @@ private:
     std::shared_ptr<unsigned> num_routes;
     std::shared_ptr<RT_entry> route_table[OLSR_MAX_ROUTES];
 
+    // vector<DuplicateTuple>
+    std::shared_ptr<unsigned> num_dupes;
+    std::shared_ptr<dup_tuple> dupSet[OLSR_MAX_DUPES];
+
 public:
     double get_lng() { return *lng.get(); }
     void set_lng(double l) { lng = std::make_shared<double>(l); }
@@ -372,6 +376,15 @@ public:
     {
         route_table[idx] = std::make_shared<RT_entry>(nt);
     }
+
+    unsigned get_num_dupes() { return *num_dupes.get(); }
+    void set_num_dupes(unsigned l) { num_dupes = std::make_shared<unsigned>(l); }
+
+    dup_tuple* get_dupSet(unsigned l) { return dupSet[l].get(); }
+    void set_dupSet(unsigned idx, dup_tuple nt)
+    {
+        dupSet[idx] = std::make_shared<dup_tuple>(nt);
+    }
     // vector<LinkTuple>
     //link_tuple linkSet[OLSR_MAX_NEIGHBORS];
     //unsigned num_tuples;
@@ -383,9 +396,7 @@ public:
 
 
 
-    // vector<DuplicateTuple>
-    dup_tuple dupSet[OLSR_MAX_DUPES];
-    unsigned num_dupes;
+
     
     // Not part of the state in ns3 but fits here mostly
     uint16_t ansn;

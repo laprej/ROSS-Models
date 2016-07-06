@@ -124,7 +124,7 @@ void olsr_init(node_state *s, tw_lp *lp)
     s->set_num_mpr(0);
     s->set_num_mpr_sel(0);
     s->set_num_top_set(0);
-    s->num_dupes = 0;
+    s->set_num_dupes(0);
     for (i = 0; i < OLSR_MAX_NEIGHBORS; i++) {
         s->SA_per_node[i] = 0;
     }
@@ -617,9 +617,9 @@ dup_tuple * FindDuplicateTuple(o_addr addr, uint16_t seq_num, node_state *s)
 {
     int i;
 
-    for (i = 0; i < s->num_dupes; i++) {
-        if (s->dupSet[i].address == addr && s->dupSet[i].sequenceNumber == seq_num) {
-            return &s->dupSet[i];
+    for (i = 0; i < s->get_num_dupes(); i++) {
+        if (s->get_dupSet(i)->address == addr && s->get_dupSet(i)->sequenceNumber == seq_num) {
+            return s->get_dupSet(i);
         }
     }
 
@@ -642,8 +642,8 @@ void AddDuplicate(o_addr originator,
 
     while (1) {
         index_to_remove = -1;
-        for (i = 0; i < s->num_dupes; i++) {
-            if (s->dupSet[i].expirationTime < exp) {
+        for (i = 0; i < s->get_num_dupes(); i++) {
+            if (s->get_dupSet(i)->expirationTime < exp) {
                 index_to_remove = i;
                 break;
             }
@@ -653,19 +653,19 @@ void AddDuplicate(o_addr originator,
 
         //printf("Expiring Dupe\n");
 
-        s->dupSet[index_to_remove].address        = s->dupSet[s->num_dupes-1].address;
-        s->dupSet[index_to_remove].expirationTime = s->dupSet[s->num_dupes-1].expirationTime;
-        s->dupSet[index_to_remove].retransmitted  = s->dupSet[s->num_dupes-1].retransmitted;
-        s->dupSet[index_to_remove].sequenceNumber = s->dupSet[s->num_dupes-1].sequenceNumber;
-        s->num_dupes--;
+        s->get_dupSet(index_to_remove)->address        = s->get_dupSet(s->get_num_dupes()-1)->address;
+        s->get_dupSet(index_to_remove)->expirationTime = s->get_dupSet(s->get_num_dupes()-1)->expirationTime;
+        s->get_dupSet(index_to_remove)->retransmitted  = s->get_dupSet(s->get_num_dupes()-1)->retransmitted;
+        s->get_dupSet(index_to_remove)->sequenceNumber = s->get_dupSet(s->get_num_dupes()-1)->sequenceNumber;
+        s->set_num_dupes(s->get_num_dupes() - 1);
     }
 
-    if (s->num_dupes == OLSR_MAX_DUPES - 1) {
+    if (s->get_num_dupes() == OLSR_MAX_DUPES - 1) {
         // Find the oldest and replace it
         int oldest = 0;
 
-        for (i = 0; i < s->num_dupes; i++) {
-            if (s->dupSet[i].expirationTime < s->dupSet[oldest].expirationTime) {
+        for (i = 0; i < s->get_num_dupes(); i++) {
+            if (s->get_dupSet(i)->expirationTime < s->get_dupSet(oldest)->expirationTime) {
                 oldest = i;
             }
         }
@@ -673,17 +673,19 @@ void AddDuplicate(o_addr originator,
         //printf("node %lu (lpid = %llu) evicting dup %d (%lu) at time %f\n", s->local_address, lp->gid,
          //      oldest, s->dupSet[oldest].address, tw_now(lp));
 
-        s->dupSet[oldest].address = originator;
-        s->dupSet[oldest].sequenceNumber = seq_num;
-        s->dupSet[oldest].expirationTime = ts;
-        s->dupSet[oldest].retransmitted = retransmitted;
+        s->get_dupSet(oldest)->address = originator;
+        s->get_dupSet(oldest)->sequenceNumber = seq_num;
+        s->get_dupSet(oldest)->expirationTime = ts;
+        s->get_dupSet(oldest)->retransmitted = retransmitted;
     }
     else {
-        s->dupSet[s->num_dupes].address = originator;
-        s->dupSet[s->num_dupes].sequenceNumber = seq_num;
-        s->dupSet[s->num_dupes].expirationTime = ts;
-        s->dupSet[s->num_dupes].retransmitted = retransmitted;
-        s->num_dupes++;
+        dup_tuple nt;
+        nt.address = originator;
+        nt.sequenceNumber = seq_num;
+        nt.expirationTime = ts;
+        nt.retransmitted = retransmitted;
+        s->set_dupSet(s->get_num_dupes(), nt);
+        s->set_num_dupes(s->get_num_dupes() + 1);
         assert(s->num_dupes < OLSR_MAX_DUPES);
     }
 }
