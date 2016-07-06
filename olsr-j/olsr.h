@@ -313,6 +313,8 @@ private:
     std::shared_ptr<unsigned> num_dupes;
     std::shared_ptr<dup_tuple> dupSet[OLSR_MAX_DUPES];
 
+    std::shared_ptr<uint16_t> ansn {new uint16_t(0)};
+
 public:
     double get_lng() { return *lng.get(); }
     void set_lng(double l) { lng = std::make_shared<double>(l); }
@@ -385,6 +387,9 @@ public:
     {
         dupSet[idx] = std::make_shared<dup_tuple>(nt);
     }
+
+    uint16_t get_ansn() { return *ansn.get(); }
+    void set_ansn(uint16_t l) { ansn = std::make_shared<uint16_t>(l); }
     // vector<LinkTuple>
     //link_tuple linkSet[OLSR_MAX_NEIGHBORS];
     //unsigned num_tuples;
@@ -399,7 +404,7 @@ public:
 
     
     // Not part of the state in ns3 but fits here mostly
-    uint16_t ansn;
+
     int SA_per_node[OLSR_MAX_NEIGHBORS];
 
     node_state() = default;

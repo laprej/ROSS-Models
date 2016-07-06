@@ -428,7 +428,7 @@ void mpr_sel_set_uniq(node_state *s)
         }
     }
 
-    s->ansn++;
+    s->set_ansn(s->get_ansn() + 1);
 }
 
 /**
@@ -537,7 +537,7 @@ void RoutingTableComputation(node_state *s)
         nt.distance = 1;
         s->set_route_table(s->get_num_routes(), nt);
         s->set_num_routes(s->get_num_routes() + 1);
-        assert(s->num_routes < OLSR_MAX_ROUTES);
+        assert(s->get_num_routes() < OLSR_MAX_ROUTES);
     }
 
     //  3. for each node in N2, i.e., a 2-hop neighbor which is not a
@@ -573,7 +573,7 @@ void RoutingTableComputation(node_state *s)
             nt.distance = 2;
             s->set_route_table(s->get_num_routes(), nt);
             s->set_num_routes(s->get_num_routes() + 1);
-            assert(s->num_routes < OLSR_MAX_ROUTES);
+            assert(s->get_num_routes() < OLSR_MAX_ROUTES);
         }
     }
 
@@ -597,7 +597,7 @@ void RoutingTableComputation(node_state *s)
                 nt.distance = h + 1;
                 s->set_route_table(s->get_num_routes(), nt);
                 s->set_num_routes(s->get_num_routes() + 1);
-                assert(s->num_routes < OLSR_MAX_ROUTES);
+                assert(s->get_num_routes() < OLSR_MAX_ROUTES);
                 added = 1;
             }
             else {
@@ -686,7 +686,7 @@ void AddDuplicate(o_addr originator,
         nt.retransmitted = retransmitted;
         s->set_dupSet(s->get_num_dupes(), nt);
         s->set_num_dupes(s->get_num_dupes() + 1);
-        assert(s->num_dupes < OLSR_MAX_DUPES);
+        assert(s->get_num_dupes() < OLSR_MAX_DUPES);
     }
 }
 
@@ -988,7 +988,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 s->set_num_neigh(s->get_num_neigh() + 1);
                 assert(s->get_num_neigh() < OLSR_MAX_NEIGHBORS);
                 assert(region(s->get_local_address()) == region(m->originator));
-                s->ansn++;
+                s->set_ansn(s->get_ansn() + 1);
             }
             // END 1-HOP PROCESSING
 
@@ -1330,7 +1330,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             msg->lat = s->get_lat();
             msg->target = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS)->gid;
             t = &msg->mt.t;
-            t->ansn = s->ansn;
+            t->ansn = s->get_ansn();
             //t->num_mpr_sel = s->num_mpr_sel;
             t->num_neighbors = s->get_num_neigh();
             for (j = 0; j < s->get_num_neigh(); j++) {
