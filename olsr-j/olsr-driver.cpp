@@ -506,9 +506,9 @@ RT_entry * Lookup(node_state *s, o_addr dest)
 {
     int i;
 
-    for (i = 0; i < s->num_routes; i++) {
-        if (s->route_table[i].destAddr == dest) {
-            return &s->route_table[i];
+    for (i = 0; i < s->get_num_routes(); i++) {
+        if (s->get_route_table(i)->destAddr == dest) {
+            return s->get_route_table(i);
         }
     }
 
@@ -526,15 +526,17 @@ void RoutingTableComputation(node_state *s)
     RT_entry *route;
 
     // 1. All the entries from the routing table are removed.
-    s->num_routes = 0;
+    s->set_num_routes(0);
 
     // 2. The new routing entries are added starting with the
     // symmetric neighbors (h=1) as the destination nodes.
     for (i = 0; i < s->get_num_neigh(); i++) {
-        s->route_table[s->num_routes].destAddr = s->get_neighSet(i)->neighborMainAddr;
-        s->route_table[s->num_routes].nextAddr = s->get_neighSet(i)->neighborMainAddr;
-        s->route_table[s->num_routes].distance = 1;
-        s->num_routes++;
+        RT_entry nt;
+        nt.destAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt.nextAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt.distance = 1;
+        s->set_route_table(s->get_num_routes(), nt);
+        s->set_num_routes(s->get_num_routes() + 1);
         assert(s->num_routes < OLSR_MAX_ROUTES);
     }
 
@@ -565,10 +567,12 @@ void RoutingTableComputation(node_state *s)
         //                                   R_dest_addr == N_neighbor_main_addr
         //                                                  of the 2-hop tuple;
         if ((route = Lookup(s, s->get_twoHopSet(i)->neighborMainAddr))) {
-            s->route_table[s->num_routes].destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
-            s->route_table[s->num_routes].nextAddr = route->nextAddr;
-            s->route_table[s->num_routes].distance = 2;
-            s->num_routes++;
+            RT_entry nt;
+            nt.destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
+            nt.nextAddr = route->nextAddr;
+            nt.distance = 2;
+            s->set_route_table(s->get_num_routes(), nt);
+            s->set_num_routes(s->get_num_routes() + 1);
             assert(s->num_routes < OLSR_MAX_ROUTES);
         }
     }
@@ -587,10 +591,12 @@ void RoutingTableComputation(node_state *s)
             RT_entry *destAddrEntry = Lookup(s, s->get_topSet(i)->destAddr);
             RT_entry *lastAddrEntry = Lookup(s, s->get_topSet(i)->lastAddr);
             if (!destAddrEntry && lastAddrEntry && lastAddrEntry->distance == h) {
-                s->route_table[s->num_routes].destAddr = s->get_topSet(i)->destAddr;
-                s->route_table[s->num_routes].nextAddr = lastAddrEntry->nextAddr;
-                s->route_table[s->num_routes].distance = h + 1;
-                s->num_routes++;
+                RT_entry nt;
+                nt.destAddr = s->get_topSet(i)->destAddr;
+                nt.nextAddr = lastAddrEntry->nextAddr;
+                nt.distance = h + 1;
+                s->set_route_table(s->get_num_routes(), nt);
+                s->set_num_routes(s->get_num_routes() + 1);
                 assert(s->num_routes < OLSR_MAX_ROUTES);
                 added = 1;
             }
@@ -1889,10 +1895,10 @@ void olsr_final(node_state *s, tw_lp *lp)
     printf("node %llu had %d MPR selectors\n", s->get_local_address(), s->get_num_mpr_sel());
 
     printf("node %llu routing table\n", s->get_local_address());
-    for (i = 0; i < s->num_routes; i++) {
+    for (i = 0; i < s->get_num_routes(); i++) {
         printf("   route[%d]: dest: %llu \t next %llu \t distance %d\n",
-               i, s->route_table[i].destAddr,
-               s->route_table[i].nextAddr, s->route_table[i].distance);
+               i, s->get_route_table(i)->destAddr,
+               s->get_route_table(i)->nextAddr, s->get_route_table(i)->distance);
     }
 
     printf("node %llu top tuples\n", s->get_local_address());

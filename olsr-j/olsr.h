@@ -305,6 +305,10 @@ private:
     std::shared_ptr<unsigned> num_top_set;
     std::shared_ptr<top_tuple> topSet[OLSR_MAX_TOP_TUPLES];
 
+    // vector<RoutingTableEntry>
+    std::shared_ptr<unsigned> num_routes;
+    std::shared_ptr<RT_entry> route_table[OLSR_MAX_ROUTES];
+
 public:
     double get_lng() { return *lng.get(); }
     void set_lng(double l) { lng = std::make_shared<double>(l); }
@@ -359,6 +363,15 @@ public:
     {
         topSet[idx] = std::make_shared<top_tuple>(nt);
     }
+
+    unsigned get_num_routes() { return *num_routes.get(); }
+    void set_num_routes(unsigned l) { num_routes = std::make_shared<unsigned>(l); }
+
+    RT_entry* get_route_table(unsigned l) { return route_table[l].get(); }
+    void set_route_table(unsigned idx, RT_entry nt)
+    {
+        route_table[idx] = std::make_shared<RT_entry>(nt);
+    }
     // vector<LinkTuple>
     //link_tuple linkSet[OLSR_MAX_NEIGHBORS];
     //unsigned num_tuples;
@@ -367,9 +380,9 @@ public:
 
 
 
-    // vector<RoutingTableEntry>
-    RT_entry route_table[OLSR_MAX_ROUTES];
-    unsigned num_routes;
+
+
+
     // vector<DuplicateTuple>
     dup_tuple dupSet[OLSR_MAX_DUPES];
     unsigned num_dupes;
