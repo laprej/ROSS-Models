@@ -1009,10 +1009,10 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     nt.neighborMainAddr = m->originator;
                     nt.twoHopNeighborAddr = h->neighbor_addrs[i];
                     s->set_twoHopSet(s->get_num_two_hop(), nt);
-                    assert(s->twoHopSet[s->num_two_hop].neighborMainAddr !=
-                           s->twoHopSet[s->num_two_hop].twoHopNeighborAddr);
+                    assert(s->get_twoHopSet(s->get_num_two_hop())->neighborMainAddr !=
+                           s->get_twoHopSet(s->get_num_two_hop())->twoHopNeighborAddr);
                     s->set_num_two_hop(s->get_num_two_hop() + 1);
-                    assert(s->num_two_hop < OLSR_MAX_2_HOP);
+                    assert(s->get_num_two_hop() < OLSR_MAX_2_HOP);
                 }
             }
 
@@ -1102,7 +1102,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 if (onlyOne) {
                     s->set_MprSet(s->get_num_mpr(), g_mpr_two_hop[i].neighborMainAddr);
                     s->set_num_mpr(s->get_num_mpr() + 1);
-                    assert(s->num_mpr < OLSR_MAX_NEIGHBORS);
+                    assert(s->get_num_mpr() < OLSR_MAX_NEIGHBORS);
                     // Make sure they're all unique!
                     mpr_set_uniq(s);
 
@@ -1253,7 +1253,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 if (max > 0) {
                     s->set_MprSet(s->get_num_mpr(), g_mpr_neigh_to_add.neighborMainAddr);
                     s->set_num_mpr(s->get_num_mpr() + 1);
-                    assert(s->num_mpr < OLSR_MAX_NEIGHBORS);
+                    assert(s->get_num_mpr() < OLSR_MAX_NEIGHBORS);
                     // Make sure they're all unique!
                     mpr_set_uniq(s);
 
@@ -1295,7 +1295,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                         nt.mainAddr = m->originator;
                         s->set_MprSelSet(s->get_num_mpr_sel(), nt);
                         s->set_num_mpr_sel(s->get_num_mpr_sel() + 1);
-                        assert(s->num_mpr_sel <= OLSR_MAX_NEIGHBORS);
+                        assert(s->get_num_mpr_sel() <= OLSR_MAX_NEIGHBORS);
                         mpr_sel_set_uniq(s);
                     }
                 }
@@ -1466,13 +1466,15 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     //	T_last_addr = originator address,
                     //	T_seq       = ANSN,
                     //	T_time      = current time + validity time.
-                    s->topSet[s->get_num_top_set()].destAddr = addr;
-                    s->topSet[s->get_num_top_set()].lastAddr = m->originator;
-                    s->topSet[s->get_num_top_set()].sequenceNumber = m->mt.t.ansn;
+                    top_tuple nt;
+                    nt.destAddr = addr;
+                    nt.lastAddr = m->originator;
+                    nt.sequenceNumber = m->mt.t.ansn;
+                    nt.expirationTime = tw_now(lp) + TOP_HOLD_TIME;
+                    s->set_topSet(s->get_num_top_set(), nt);
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
-                    s->topSet[s->get_num_top_set()].expirationTime = tw_now(lp) + TOP_HOLD_TIME;
                     s->set_num_top_set(s->get_num_top_set() + 1);
-                    assert(s->num_top_set < OLSR_MAX_TOP_TUPLES);
+                    assert(s->get_num_top_set() < OLSR_MAX_TOP_TUPLES);
                 }
             }
 
@@ -1896,7 +1898,7 @@ void olsr_final(node_state *s, tw_lp *lp)
     printf("node %llu top tuples\n", s->get_local_address());
     for (i = 0; i < s->get_num_top_set(); i++) {
         printf("   top_tuple[%d] dest: %llu   last:  %llu   seq:   %d\n",
-               i, s->topSet[i].destAddr, s->topSet[i].lastAddr, s->topSet[i].sequenceNumber);
+               i, s->get_topSet(i)->destAddr, s->get_topSet(i)->lastAddr, s->get_topSet(i)->sequenceNumber);
     }
 
     /*
