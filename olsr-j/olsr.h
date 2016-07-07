@@ -11,6 +11,8 @@
  * - single interface
  */
 
+#include <array>
+
 // From http://c-faq.com/misc/bitsets.html
 #include <limits.h>		/* for CHAR_BIT */
 
@@ -287,31 +289,31 @@ private:
 
     // vector<NeighborTuple>
     std::shared_ptr<unsigned> num_neigh;
-    std::shared_ptr<neigh_tuple> neighSet[OLSR_MAX_NEIGHBORS];
+    std::array<std::shared_ptr<neigh_tuple>, OLSR_MAX_NEIGHBORS> neighSet;
 
     // vector<TwoHopNeighborTuple>
     std::shared_ptr<unsigned> num_two_hop;
-    std::shared_ptr<two_hop_neigh_tuple> twoHopSet[OLSR_MAX_2_HOP];
+    std::array<std::shared_ptr<two_hop_neigh_tuple>, OLSR_MAX_2_HOP> twoHopSet;
 
     // set<Ipv4Address>
     std::shared_ptr<unsigned> num_mpr;
-    std::shared_ptr<o_addr> mprSet[OLSR_MAX_NEIGHBORS];
+    std::array<std::shared_ptr<o_addr>, OLSR_MAX_NEIGHBORS> mprSet;
 
     // vector<MprSelectorTuple>
     std::shared_ptr<unsigned> num_mpr_sel;
-    std::shared_ptr<mpr_sel_tuple> mprSelSet[OLSR_MAX_NEIGHBORS];
+    std::array<std::shared_ptr<mpr_sel_tuple>, OLSR_MAX_NEIGHBORS> mprSelSet;
 
     // vector<TopologyTuple>
     std::shared_ptr<unsigned> num_top_set;
-    std::shared_ptr<top_tuple> topSet[OLSR_MAX_TOP_TUPLES];
+    std::array<std::shared_ptr<top_tuple>, OLSR_MAX_TOP_TUPLES> topSet;
 
     // vector<RoutingTableEntry>
     std::shared_ptr<unsigned> num_routes;
-    std::shared_ptr<RT_entry> route_table[OLSR_MAX_ROUTES];
+    std::array<std::shared_ptr<RT_entry>, OLSR_MAX_ROUTES> route_table;
 
     // vector<DuplicateTuple>
     std::shared_ptr<unsigned> num_dupes;
-    std::shared_ptr<dup_tuple> dupSet[OLSR_MAX_DUPES];
+    std::array<std::shared_ptr<dup_tuple>, OLSR_MAX_DUPES> dupSet;
 
     std::shared_ptr<uint16_t> ansn {new uint16_t(0)};
 
