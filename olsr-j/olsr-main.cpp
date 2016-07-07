@@ -24,7 +24,7 @@ int olsr_main(int argc, char *argv[])
     sprintf( log, "olsr-log.%ld", g_tw_mynode );
 
     olsr_event_log = fopen( log, "w+");
-    if( olsr_event_log == NULL )
+    if( olsr_event_log == nullptr )
         tw_error( TW_LOC, "Failed to Open OLSR Event Log file \n");
 #endif
 

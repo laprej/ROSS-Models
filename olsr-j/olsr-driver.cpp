@@ -36,7 +36,7 @@ char g_olsr_mobility = 'N';
 unsigned long long g_olsr_event_stats[OLSR_END_EVENT];
 unsigned long long g_olsr_root_event_stats[OLSR_END_EVENT];
 
-char *event_names[OLSR_END_EVENT] = {
+char const *event_names[OLSR_END_EVENT] = {
     "HELLO_RX",
     "HELLO_TX",
     "TC_RX",
@@ -48,7 +48,7 @@ char *event_names[OLSR_END_EVENT] = {
     "RWALK_CHANGE"
 };
 
-FILE *olsr_event_log=NULL;
+FILE *olsr_event_log=nullptr;
 
 unsigned region(o_addr a)
 {
@@ -443,7 +443,7 @@ top_tuple * FindNewerTopologyTuple(o_addr last, uint16_t ansn, node_state *s)
             return s->get_topSet(i);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /**
@@ -486,7 +486,7 @@ top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr, node_state *s)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 neigh_tuple * FindSymNeighborTuple(node_state *s, o_addr mainAddr)
@@ -499,7 +499,7 @@ neigh_tuple * FindSymNeighborTuple(node_state *s, o_addr mainAddr)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 RT_entry * Lookup(node_state *s, o_addr dest)
@@ -512,7 +512,7 @@ RT_entry * Lookup(node_state *s, o_addr dest)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /**
@@ -531,10 +531,10 @@ void RoutingTableComputation(node_state *s)
     // 2. The new routing entries are added starting with the
     // symmetric neighbors (h=1) as the destination nodes.
     for (i = 0; i < s->get_num_neigh(); i++) {
-        RT_entry nt;
-        nt.destAddr = s->get_neighSet(i)->neighborMainAddr;
-        nt.nextAddr = s->get_neighSet(i)->neighborMainAddr;
-        nt.distance = 1;
+        std::shared_ptr<RT_entry> nt(std::make_shared<RT_entry>());
+        nt->destAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt->nextAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt->distance = 1;
         s->set_route_table(s->get_num_routes(), nt);
         s->set_num_routes(s->get_num_routes() + 1);
         assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -567,10 +567,10 @@ void RoutingTableComputation(node_state *s)
         //                                   R_dest_addr == N_neighbor_main_addr
         //                                                  of the 2-hop tuple;
         if ((route = Lookup(s, s->get_twoHopSet(i)->neighborMainAddr))) {
-            RT_entry nt;
-            nt.destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
-            nt.nextAddr = route->nextAddr;
-            nt.distance = 2;
+            std::shared_ptr<RT_entry> nt(std::make_shared<RT_entry>());
+            nt->destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
+            nt->nextAddr = route->nextAddr;
+            nt->distance = 2;
             s->set_route_table(s->get_num_routes(), nt);
             s->set_num_routes(s->get_num_routes() + 1);
             assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -591,10 +591,10 @@ void RoutingTableComputation(node_state *s)
             RT_entry *destAddrEntry = Lookup(s, s->get_topSet(i)->destAddr);
             RT_entry *lastAddrEntry = Lookup(s, s->get_topSet(i)->lastAddr);
             if (!destAddrEntry && lastAddrEntry && lastAddrEntry->distance == h) {
-                RT_entry nt;
-                nt.destAddr = s->get_topSet(i)->destAddr;
-                nt.nextAddr = lastAddrEntry->nextAddr;
-                nt.distance = h + 1;
+                std::shared_ptr<RT_entry> nt(std::make_shared<RT_entry>());
+                nt->destAddr = s->get_topSet(i)->destAddr;
+                nt->nextAddr = lastAddrEntry->nextAddr;
+                nt->distance = h + 1;
                 s->set_route_table(s->get_num_routes(), nt);
                 s->set_num_routes(s->get_num_routes() + 1);
                 assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -623,7 +623,7 @@ dup_tuple * FindDuplicateTuple(o_addr addr, uint16_t seq_num, node_state *s)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /**
@@ -679,11 +679,11 @@ void AddDuplicate(o_addr originator,
         s->get_dupSet(oldest)->retransmitted = retransmitted;
     }
     else {
-        dup_tuple nt;
-        nt.address = originator;
-        nt.sequenceNumber = seq_num;
-        nt.expirationTime = ts;
-        nt.retransmitted = retransmitted;
+        std::shared_ptr<dup_tuple> nt(std::make_shared<dup_tuple>());
+        nt->address = originator;
+        nt->sequenceNumber = seq_num;
+        nt->expirationTime = ts;
+        nt->retransmitted = retransmitted;
         s->set_dupSet(s->get_num_dupes(), nt);
         s->set_num_dupes(s->get_num_dupes() + 1);
         assert(s->get_num_dupes() < OLSR_MAX_DUPES);
@@ -718,7 +718,7 @@ void printTC(olsr_msg_data *m, node_state *s)
 ///
 /// \param p the %OLSR packet which has been received.
 /// \param msg the %OLSR message which must be forwarded.
-/// \param dup_tuple NULL if the message has never been considered for forwarding,
+/// \param dup_tuple nullptr if the message has never been considered for forwarding,
 /// or a duplicate tuple in other case.
 /// \param local_iface the address of the interface where the message was received from.
 ///
@@ -739,13 +739,13 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
 
     // If the sender interface address is not in the symmetric
     // 1-hop neighborhood the message must not be forwarded
-    if (NULL == FindSymNeighborTuple(s, senderAddress)) {
+    if (nullptr == FindSymNeighborTuple(s, senderAddress)) {
         return;
     }
 
     // If the message has already been considered for forwarding,
     // it must not be retransmitted again
-    if (duplicated != NULL && duplicated->retransmitted)
+    if (duplicated != nullptr && duplicated->retransmitted)
     {
         return;
     }
@@ -792,7 +792,7 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
         }
     }
 
-    if (duplicated != NULL) {
+    if (duplicated != nullptr) {
         duplicated->expirationTime = tw_now(lp) + OLSR_DUP_HOLD_TIME;
         duplicated->retransmitted = retransmitted;
     }
@@ -816,7 +816,7 @@ void route_packet(node_state *s, tw_event *e)
 {
     olsr_msg_data *m = (olsr_msg_data*)tw_event_data(e);
     RT_entry * route = Lookup(s, m->destination);
-    if (route == NULL) {
+    if (route == nullptr) {
         printf("Node %llu doesn't have a route to %llu\n", s->get_local_address(), m->destination);
         return;
     }
@@ -982,8 +982,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             }
 
             if (!in) {
-                neigh_tuple nt;
-                nt.neighborMainAddr = m->originator;
+                std::shared_ptr<neigh_tuple> nt(std::make_shared<neigh_tuple>());
+                nt->neighborMainAddr = m->originator;
                 s->set_neighSet(s->get_num_neigh(), nt);
                 s->set_num_neigh(s->get_num_neigh() + 1);
                 assert(s->get_num_neigh() < OLSR_MAX_NEIGHBORS);
@@ -1013,9 +1013,9 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 }
 
                 if (!in) {
-                    two_hop_neigh_tuple nt;
-                    nt.neighborMainAddr = m->originator;
-                    nt.twoHopNeighborAddr = h->neighbor_addrs[i];
+                    std::shared_ptr<two_hop_neigh_tuple> nt(std::make_shared<two_hop_neigh_tuple>());
+                    nt->neighborMainAddr = m->originator;
+                    nt->twoHopNeighborAddr = h->neighbor_addrs[i];
                     s->set_twoHopSet(s->get_num_two_hop(), nt);
                     assert(s->get_twoHopSet(s->get_num_two_hop())->neighborMainAddr !=
                            s->get_twoHopSet(s->get_num_two_hop())->twoHopNeighborAddr);
@@ -1201,7 +1201,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 //                // reachability, select the node as MPR whose D(y) is
 //                // greater. Remove the nodes from N2 which are now covered
 //                // by a node in the MPR set.
-//                NeighborTuple const *max = NULL;
+//                NeighborTuple const *max = nullptr;
 //                int max_r = 0;
 //                for (std::set<int>::iterator it = rs.begin (); it != rs.end (); it++)
 //                {
@@ -1214,7 +1214,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 //                         it2 != reachability[r].end (); it2++)
 //                    {
 //                        const NeighborTuple *nb_tuple = *it2;
-//                        if (max == NULL || nb_tuple->willingness > max->willingness)
+//                        if (max == nullptr || nb_tuple->willingness > max->willingness)
 //                        {
 //                            max = nb_tuple;
 //                            max_r = r;
@@ -1299,8 +1299,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     // Check if it contains OUR address
                     if (h->neighbor_addrs[i] == s->get_local_address()) {
                         // We should add this guy to the selector set
-                        mpr_sel_tuple nt;
-                        nt.mainAddr = m->originator;
+                        std::shared_ptr<mpr_sel_tuple> nt(std::make_shared<mpr_sel_tuple>());
+                        nt->mainAddr = m->originator;
                         s->set_MprSelSet(s->get_num_mpr_sel(), nt);
                         s->set_num_mpr_sel(s->get_num_mpr_sel() + 1);
                         assert(s->get_num_mpr_sel() <= OLSR_MAX_NEIGHBORS);
@@ -1417,7 +1417,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             //int do_forwarding = 1;
             dup_tuple *duplicated = FindDuplicateTuple(m->originator, m->seq_num, s);
 
-            if (duplicated != NULL) {
+            if (duplicated != nullptr) {
                 //break;
             }
 
@@ -1441,7 +1441,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             // then further processing of this TC message MUST NOT be
             // performed.
             top_tuple *tt = FindNewerTopologyTuple(m->originator, m->mt.t.ansn, s);
-            if (tt != NULL)
+            if (tt != nullptr)
                 return;
 
             // 3. All tuples in the topology set where:
@@ -1463,7 +1463,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 //        T_time      =  current time + validity time.
                 tt = FindTopologyTuple(addr, m->originator, s);
 
-                if (tt != NULL) {
+                if (tt != nullptr) {
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
                     tt->expirationTime = tw_now(lp) + TOP_HOLD_TIME;
                 }
@@ -1474,11 +1474,11 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     //	T_last_addr = originator address,
                     //	T_seq       = ANSN,
                     //	T_time      = current time + validity time.
-                    top_tuple nt;
-                    nt.destAddr = addr;
-                    nt.lastAddr = m->originator;
-                    nt.sequenceNumber = m->mt.t.ansn;
-                    nt.expirationTime = tw_now(lp) + TOP_HOLD_TIME;
+                    std::shared_ptr<top_tuple> nt(std::make_shared<top_tuple>());
+                    nt->destAddr = addr;
+                    nt->lastAddr = m->originator;
+                    nt->sequenceNumber = m->mt.t.ansn;
+                    nt->expirationTime = tw_now(lp) + TOP_HOLD_TIME;
                     s->set_topSet(s->get_num_top_set(), nt);
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
                     s->set_num_top_set(s->get_num_top_set() + 1);
@@ -1524,7 +1524,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             // If we don't have a route, don't allocate an event!
-            if (Lookup(s, MASTER_NODE) == NULL) {
+            if (Lookup(s, MASTER_NODE) == nullptr) {
                 return;
             }
 
@@ -1608,7 +1608,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 
             if (m->sender == s->get_local_address()) {
                 // If we don't have a route, don't allocate an event!
-                if (Lookup(s, MASTER_NODE) == NULL) {
+                if (Lookup(s, MASTER_NODE) == nullptr) {
                     return;
                 }
 
@@ -1961,7 +1961,7 @@ void olsr_custom_mapping(void)
            g_tw_mynode, g_tw_nlp, g_tw_lp_offset);
 #endif
 
-	for(kpid = 0, lpid = 0, pe = NULL; (pe = tw_pe_next(pe)); )
+	for(kpid = 0, lpid = 0, pe = nullptr; (pe = tw_pe_next(pe)); )
 	{
 #if VERIFY_MAPPING
 		printf("\tPE %d\n", pe->id);
@@ -2057,7 +2057,7 @@ tw_lptype olsr_lps[] = {
     // Our OLSR node handling functions
     {
         (init_f) olsr_init,
-        (pre_run_f) NULL,
+        (pre_run_f) nullptr,
         (event_f) olsr_event,
         (revent_f) olsr_event_reverse,
         (final_f) olsr_final,
@@ -2068,7 +2068,7 @@ tw_lptype olsr_lps[] = {
     // Our SA aggregator handling functions
     {
         (init_f) sa_master_init,
-        (pre_run_f) NULL,
+        (pre_run_f) nullptr,
         (event_f) sa_master_event,
         (revent_f) sa_master_event_reverse,
         (final_f) null,

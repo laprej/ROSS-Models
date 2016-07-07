@@ -68,7 +68,7 @@ typedef enum {
     OLSR_END_EVENT, // KEEP THIS LAST ELSE STATS ARRAY NOT BIG ENOUGH!!
 } olsr_ev_type;
 
-extern char *event_names[];
+extern char const *event_names[];
 //= {
 //    "HELLO_RX",
 //    "HELLO_TX",
@@ -227,17 +227,17 @@ typedef struct /* TopologyTuple */
 } top_tuple;
 
 /// An OLSR's routing table entry.
-typedef struct /* RoutingTableEntry */
+struct RT_entry /* RoutingTableEntry */
 {
     o_addr destAddr; ///< Address of the destination node.
     o_addr nextAddr; ///< Address of the next hop.
     // Only one interface in our model
     //uint32_t interface; ///< Interface index
     uint32_t distance; ///< Distance in hops to the destination.
-} RT_entry;
+};
 
 /// A Duplicate Tuple
-typedef struct /* DuplicateTuple */
+struct dup_tuple/* DuplicateTuple */
 {
     /// Originator address of the message.
     o_addr address;
@@ -249,7 +249,7 @@ typedef struct /* DuplicateTuple */
     // std::vector<Ipv4Address> ifaceList;
     /// Time at which this tuple expires and must be removed.
     Time expirationTime;
-} dup_tuple;
+};
 
 /**
  This struct contains all of the OLSR per-node state.  Not everything in the
@@ -329,18 +329,18 @@ public:
     void set_num_neigh(unsigned l) { num_neigh = std::make_shared<unsigned>(l); }
 
     neigh_tuple* get_neighSet(unsigned l) { return neighSet[l].get(); }
-    void set_neighSet(unsigned idx, neigh_tuple nt)
+    void set_neighSet(unsigned idx, const std::shared_ptr<neigh_tuple> &nt)
     {
-        neighSet[idx] = std::make_shared<neigh_tuple>(nt);
+        neighSet[idx] = std::move(nt);
     }
 
     unsigned get_num_two_hop() { return *num_two_hop.get(); }
     void set_num_two_hop(unsigned l) { num_two_hop = std::make_shared<unsigned>(l); }
 
     two_hop_neigh_tuple* get_twoHopSet(unsigned l) { return twoHopSet[l].get(); }
-    void set_twoHopSet(unsigned idx, two_hop_neigh_tuple nt)
+    void set_twoHopSet(unsigned idx, const std::shared_ptr<two_hop_neigh_tuple> &nt)
     {
-        twoHopSet[idx] = std::make_shared<two_hop_neigh_tuple>(nt);
+        twoHopSet[idx] = std::move(nt);
     }
 
     unsigned get_num_mpr() { return *num_mpr.get(); }
@@ -356,36 +356,36 @@ public:
     void set_num_mpr_sel(unsigned l) { num_mpr_sel = std::make_shared<unsigned>(l); }
 
     mpr_sel_tuple get_MprSelSet(unsigned l) { return *mprSelSet[l].get(); }
-    void set_MprSelSet(unsigned idx, mpr_sel_tuple nt)
+    void set_MprSelSet(unsigned idx, const std::shared_ptr<mpr_sel_tuple> &nt)
     {
-        mprSelSet[idx] = std::make_shared<mpr_sel_tuple>(nt);
+        mprSelSet[idx] = std::move(nt);
     }
 
     unsigned get_num_top_set() { return *num_top_set.get(); }
     void set_num_top_set(unsigned l) { num_top_set = std::make_shared<unsigned>(l); }
 
     top_tuple* get_topSet(unsigned l) { return topSet[l].get(); }
-    void set_topSet(unsigned idx, top_tuple nt)
+    void set_topSet(unsigned idx, const std::shared_ptr<top_tuple> &nt)
     {
-        topSet[idx] = std::make_shared<top_tuple>(nt);
+        topSet[idx] = std::move(nt);
     }
 
     unsigned get_num_routes() { return *num_routes.get(); }
     void set_num_routes(unsigned l) { num_routes = std::make_shared<unsigned>(l); }
 
     RT_entry* get_route_table(unsigned l) { return route_table[l].get(); }
-    void set_route_table(unsigned idx, RT_entry nt)
+    void set_route_table(unsigned idx, const std::shared_ptr<RT_entry> &nt)
     {
-        route_table[idx] = std::make_shared<RT_entry>(nt);
+        route_table[idx] = std::move(nt);
     }
 
     unsigned get_num_dupes() { return *num_dupes.get(); }
     void set_num_dupes(unsigned l) { num_dupes = std::make_shared<unsigned>(l); }
 
     dup_tuple* get_dupSet(unsigned l) { return dupSet[l].get(); }
-    void set_dupSet(unsigned idx, dup_tuple nt)
+    void set_dupSet(unsigned idx, const std::shared_ptr<dup_tuple> &nt)
     {
-        dupSet[idx] = std::make_shared<dup_tuple>(nt);
+        dupSet[idx] = std::move(nt);
     }
 
     uint16_t get_ansn() { return *ansn.get(); }
