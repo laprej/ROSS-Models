@@ -13,6 +13,8 @@
 
 #include <array>
 
+// BOOST_POOL_NO_MT turns off multithreading
+#define BOOST_POOL_NO_MT
 #include <boost/pool/pool_alloc.hpp>
 
 // From http://c-faq.com/misc/bitsets.html

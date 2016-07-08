@@ -291,7 +291,7 @@ DoCalcRxPower (double txPowerDbm,
 
 #define RANGE 60.0
 
-static inline int out_of_radio_range(node_state *s, olsr_msg_data *m)
+int out_of_radio_range(node_state *s, olsr_msg_data *m)
 {
 #if USE_RADIO_DISTANCE
     const double range = RANGE;
@@ -334,7 +334,7 @@ static inline int out_of_radio_range(node_state *s, olsr_msg_data *m)
  * N is the subset of neighbors of the node, which are neighbors of the
  * interface I.
  */
-static inline unsigned Dy(node_state *s, o_addr target)
+unsigned Dy(node_state *s, o_addr target)
 {
     int i, j, in;
     o_addr temp[OLSR_MAX_NEIGHBORS];
@@ -376,7 +376,7 @@ static inline unsigned Dy(node_state *s, o_addr target)
 /**
  * Remove "n" from N2 (stored in g_mpr_two_hop)
  */
-static inline void remove_node_from_n2(o_addr n)
+void remove_node_from_n2(o_addr n)
 {
     int i;
     int index_to_remove;
