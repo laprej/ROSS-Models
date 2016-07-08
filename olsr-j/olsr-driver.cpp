@@ -465,10 +465,7 @@ void EraseOlderTopologyTuples(o_addr last, uint16_t ansn, node_state *s)
 
         if (index_to_remove == -1) break;
 
-        s->get_topSet(index_to_remove)->destAddr = s->get_topSet(s->get_num_top_set()-1)->destAddr;
-        s->get_topSet(index_to_remove)->expirationTime = s->get_topSet(s->get_num_top_set()-1)->expirationTime;
-        s->get_topSet(index_to_remove)->lastAddr = s->get_topSet(s->get_num_top_set()-1)->lastAddr;
-        s->get_topSet(index_to_remove)->sequenceNumber = s->get_topSet(s->get_num_top_set()-1)->sequenceNumber;
+        s->get_topSetSP(index_to_remove).swap(s->get_topSetSP(s->get_num_top_set()-1));
         s->set_num_top_set(s->get_num_top_set() - 1);
     }
 }
@@ -653,10 +650,7 @@ void AddDuplicate(o_addr originator,
 
         //printf("Expiring Dupe\n");
 
-        s->get_dupSet(index_to_remove)->address        = s->get_dupSet(s->get_num_dupes()-1)->address;
-        s->get_dupSet(index_to_remove)->expirationTime = s->get_dupSet(s->get_num_dupes()-1)->expirationTime;
-        s->get_dupSet(index_to_remove)->retransmitted  = s->get_dupSet(s->get_num_dupes()-1)->retransmitted;
-        s->get_dupSet(index_to_remove)->sequenceNumber = s->get_dupSet(s->get_num_dupes()-1)->sequenceNumber;
+        s->get_dupSetSP(index_to_remove).swap(s->get_dupSetSP(s->get_num_dupes()-1));
         s->set_num_dupes(s->get_num_dupes() - 1);
     }
 
@@ -673,10 +667,12 @@ void AddDuplicate(o_addr originator,
         //printf("node %lu (lpid = %llu) evicting dup %d (%lu) at time %f\n", s->local_address, lp->gid,
          //      oldest, s->dupSet[oldest].address, tw_now(lp));
 
-        s->get_dupSet(oldest)->address = originator;
-        s->get_dupSet(oldest)->sequenceNumber = seq_num;
-        s->get_dupSet(oldest)->expirationTime = ts;
-        s->get_dupSet(oldest)->retransmitted = retransmitted;
+        std::shared_ptr<dup_tuple> nt(std::make_shared<dup_tuple>());
+        nt->address = originator;
+        nt->sequenceNumber = seq_num;
+        nt->expirationTime = ts;
+        nt->retransmitted = retransmitted;
+        s->get_dupSetSP(oldest).swap(nt);
     }
     else {
         std::shared_ptr<dup_tuple> nt(std::make_shared<dup_tuple>());

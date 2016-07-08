@@ -367,6 +367,7 @@ public:
     void set_num_top_set(unsigned l) { num_top_set = std::make_shared<unsigned>(l); }
 
     top_tuple* get_topSet(unsigned l) { return topSet[l].get(); }
+    std::shared_ptr<top_tuple>& get_topSetSP(unsigned l) { return topSet[l]; }
     void set_topSet(unsigned idx, const std::shared_ptr<top_tuple> &nt)
     {
         topSet[idx] = std::move(nt);
@@ -385,6 +386,7 @@ public:
     void set_num_dupes(unsigned l) { num_dupes = std::make_shared<unsigned>(l); }
 
     dup_tuple* get_dupSet(unsigned l) { return dupSet[l].get(); }
+    std::shared_ptr<dup_tuple>& get_dupSetSP(unsigned l) { return dupSet[l]; }
     void set_dupSet(unsigned idx, const std::shared_ptr<dup_tuple> &nt)
     {
         dupSet[idx] = std::move(nt);
