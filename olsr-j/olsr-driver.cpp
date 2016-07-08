@@ -384,9 +384,7 @@ static inline void remove_node_from_n2(o_addr n)
         if (index_to_remove == -1) break;
 
         //printf("Removing %d\n", index_to_remove);
-        g_mpr_two_hop[index_to_remove].expirationTime = g_mpr_two_hop[g_num_two_hop-1].expirationTime;
-        g_mpr_two_hop[index_to_remove].neighborMainAddr = g_mpr_two_hop[g_num_two_hop-1].neighborMainAddr;
-        g_mpr_two_hop[index_to_remove].twoHopNeighborAddr = g_mpr_two_hop[g_num_two_hop-1].twoHopNeighborAddr;
+        g_mpr_two_hop[index_to_remove] = g_mpr_two_hop[g_num_two_hop-1];
         g_num_two_hop--;
     }
 }
