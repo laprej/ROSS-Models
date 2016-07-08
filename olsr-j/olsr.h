@@ -13,6 +13,8 @@
 
 #include <array>
 
+#include <boost/pool/pool_alloc.hpp>
+
 // From http://c-faq.com/misc/bitsets.html
 #include <limits.h>		/* for CHAR_BIT */
 
@@ -276,6 +278,15 @@ protected:
  @endcode
  */
 
+extern boost::fast_pool_allocator<o_addr> o_addr_allocator;
+extern boost::fast_pool_allocator<unsigned> unsigned_allocator;
+extern boost::fast_pool_allocator<RT_entry> RT_entry_allocator;
+extern boost::fast_pool_allocator<dup_tuple> dup_tuple_allocator;
+extern boost::fast_pool_allocator<neigh_tuple> neigh_tuple_allocator;
+extern boost::fast_pool_allocator<two_hop_neigh_tuple> two_hop_neigh_tuple_allocator;
+extern boost::fast_pool_allocator<mpr_sel_tuple> mpr_sel_tuple_allocator;
+extern boost::fast_pool_allocator<top_tuple> top_tuple_allocator;
+
 class node_state : public LP_State /*OlsrState */
 {
 private:
@@ -325,10 +336,14 @@ public:
     void set_lat(double l) { lat = std::make_shared<double>(l); }
 
     o_addr get_local_address() { return *local_address.get(); }
-    void set_local_address(o_addr l) { local_address = std::make_shared<o_addr>(l); }
+    void set_local_address(o_addr l) {
+        local_address = std::allocate_shared<o_addr, boost::fast_pool_allocator<o_addr>>(o_addr_allocator, l);
+    }
 
     unsigned get_num_neigh() { return *num_neigh.get(); }
-    void set_num_neigh(unsigned l) { num_neigh = std::make_shared<unsigned>(l); }
+    void set_num_neigh(unsigned l) {
+        num_neigh = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     neigh_tuple* get_neighSet(unsigned l) { return neighSet[l].get(); }
     void set_neighSet(unsigned idx, const std::shared_ptr<neigh_tuple> &nt)
@@ -337,7 +352,9 @@ public:
     }
 
     unsigned get_num_two_hop() { return *num_two_hop.get(); }
-    void set_num_two_hop(unsigned l) { num_two_hop = std::make_shared<unsigned>(l); }
+    void set_num_two_hop(unsigned l) {
+        num_two_hop = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     two_hop_neigh_tuple* get_twoHopSet(unsigned l) { return twoHopSet[l].get(); }
     void set_twoHopSet(unsigned idx, const std::shared_ptr<two_hop_neigh_tuple> &nt)
@@ -346,16 +363,20 @@ public:
     }
 
     unsigned get_num_mpr() { return *num_mpr.get(); }
-    void set_num_mpr(unsigned l) { num_mpr = std::make_shared<unsigned>(l); }
+    void set_num_mpr(unsigned l) {
+        num_mpr = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     o_addr get_MprSet(unsigned l) { return *mprSet[l].get(); }
     void set_MprSet(unsigned idx, o_addr nt)
     {
-        mprSet[idx] = std::make_shared<o_addr>(nt);
+        mprSet[idx] = std::allocate_shared<o_addr, boost::fast_pool_allocator<o_addr>>(o_addr_allocator, nt);
     }
 
     unsigned get_num_mpr_sel() { return *num_mpr_sel.get(); }
-    void set_num_mpr_sel(unsigned l) { num_mpr_sel = std::make_shared<unsigned>(l); }
+    void set_num_mpr_sel(unsigned l) {
+        num_mpr_sel = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     mpr_sel_tuple get_MprSelSet(unsigned l) { return *mprSelSet[l].get(); }
     void set_MprSelSet(unsigned idx, const std::shared_ptr<mpr_sel_tuple> &nt)
@@ -364,7 +385,9 @@ public:
     }
 
     unsigned get_num_top_set() { return *num_top_set.get(); }
-    void set_num_top_set(unsigned l) { num_top_set = std::make_shared<unsigned>(l); }
+    void set_num_top_set(unsigned l) {
+        num_top_set = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     top_tuple* get_topSet(unsigned l) { return topSet[l].get(); }
     std::shared_ptr<top_tuple>& get_topSetSP(unsigned l) { return topSet[l]; }
@@ -374,7 +397,9 @@ public:
     }
 
     unsigned get_num_routes() { return *num_routes.get(); }
-    void set_num_routes(unsigned l) { num_routes = std::make_shared<unsigned>(l); }
+    void set_num_routes(unsigned l) {
+        num_routes = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+    }
 
     RT_entry* get_route_table(unsigned l) { return route_table[l].get(); }
     void set_route_table(unsigned idx, const std::shared_ptr<RT_entry> &nt)
