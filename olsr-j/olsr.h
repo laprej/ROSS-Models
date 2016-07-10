@@ -348,9 +348,9 @@ public:
     }
 
     neigh_tuple* get_neighSet(unsigned l) { return neighSet[l].get(); }
-    void set_neighSet(unsigned idx, const std::shared_ptr<neigh_tuple> &nt)
+    void set_neighSet(unsigned idx, std::shared_ptr<neigh_tuple> &nt)
     {
-        neighSet[idx] = std::move(nt);
+        neighSet[idx].swap(nt);
     }
 
     unsigned get_num_two_hop() { return *num_two_hop.get(); }
@@ -359,9 +359,9 @@ public:
     }
 
     two_hop_neigh_tuple* get_twoHopSet(unsigned l) { return twoHopSet[l].get(); }
-    void set_twoHopSet(unsigned idx, const std::shared_ptr<two_hop_neigh_tuple> &nt)
+    void set_twoHopSet(unsigned idx, std::shared_ptr<two_hop_neigh_tuple> &nt)
     {
-        twoHopSet[idx] = std::move(nt);
+        twoHopSet[idx].swap(nt);
     }
 
     unsigned get_num_mpr() { return *num_mpr.get(); }
@@ -381,9 +381,9 @@ public:
     }
 
     mpr_sel_tuple get_MprSelSet(unsigned l) { return *mprSelSet[l].get(); }
-    void set_MprSelSet(unsigned idx, const std::shared_ptr<mpr_sel_tuple> &nt)
+    void set_MprSelSet(unsigned idx, std::shared_ptr<mpr_sel_tuple> &nt)
     {
-        mprSelSet[idx] = std::move(nt);
+        mprSelSet[idx].swap(nt);
     }
 
     unsigned get_num_top_set() { return *num_top_set.get(); }
@@ -393,9 +393,9 @@ public:
 
     top_tuple* get_topSet(unsigned l) { return topSet[l].get(); }
     std::shared_ptr<top_tuple>& get_topSetSP(unsigned l) { return topSet[l]; }
-    void set_topSet(unsigned idx, const std::shared_ptr<top_tuple> &nt)
+    void set_topSet(unsigned idx, std::shared_ptr<top_tuple> &nt)
     {
-        topSet[idx] = std::move(nt);
+        topSet[idx].swap(nt);
     }
 
     unsigned get_num_routes() { return *num_routes.get(); }
@@ -404,9 +404,9 @@ public:
     }
 
     RT_entry* get_route_table(unsigned l) { return route_table[l].get(); }
-    void set_route_table(unsigned idx, const std::shared_ptr<RT_entry> &nt)
+    void set_route_table(unsigned idx, std::shared_ptr<RT_entry> &nt)
     {
-        route_table[idx] = std::move(nt);
+        route_table[idx].swap(nt);
     }
 
     unsigned get_num_dupes() { return *num_dupes.get(); }
@@ -414,9 +414,9 @@ public:
 
     dup_tuple* get_dupSet(unsigned l) { return dupSet[l].get(); }
     std::shared_ptr<dup_tuple>& get_dupSetSP(unsigned l) { return dupSet[l]; }
-    void set_dupSet(unsigned idx, const std::shared_ptr<dup_tuple> &nt)
+    void set_dupSet(unsigned idx, std::shared_ptr<dup_tuple> &nt)
     {
-        dupSet[idx] = std::move(nt);
+        dupSet[idx].swap(nt);
     }
 
     uint16_t get_ansn() { return *ansn.get(); }
