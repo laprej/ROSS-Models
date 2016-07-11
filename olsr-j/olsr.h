@@ -344,12 +344,12 @@ public:
 
     o_addr get_local_address() const { return *local_address.get(); }
     void set_local_address(o_addr l) {
-        local_address = std::allocate_shared<o_addr, boost::fast_pool_allocator<o_addr>>(o_addr_allocator, l);
+        local_address = std::allocate_shared<o_addr>(o_addr_allocator, l);
     }
 
     unsigned get_num_neigh() const { return *num_neigh.get(); }
     void set_num_neigh(unsigned l) {
-        num_neigh = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_neigh = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     neigh_tuple* get_neighSet(unsigned l) const { return neighSet[l].get(); }
@@ -360,7 +360,7 @@ public:
 
     unsigned get_num_two_hop() const { return *num_two_hop.get(); }
     void set_num_two_hop(unsigned l) {
-        num_two_hop = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_two_hop = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     two_hop_neigh_tuple* get_twoHopSet(unsigned l) const { return twoHopSet[l].get(); }
@@ -371,18 +371,18 @@ public:
 
     unsigned get_num_mpr() const { return *num_mpr.get(); }
     void set_num_mpr(unsigned l) {
-        num_mpr = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_mpr = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     o_addr get_MprSet(unsigned l) const { return *mprSet[l].get(); }
     void set_MprSet(unsigned idx, o_addr nt)
     {
-        mprSet[idx] = std::allocate_shared<o_addr, boost::fast_pool_allocator<o_addr>>(o_addr_allocator, nt);
+        mprSet[idx] = std::allocate_shared<o_addr>(o_addr_allocator, nt);
     }
 
     unsigned get_num_mpr_sel() const { return *num_mpr_sel.get(); }
     void set_num_mpr_sel(unsigned l) {
-        num_mpr_sel = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_mpr_sel = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     mpr_sel_tuple get_MprSelSet(unsigned l) const { return *mprSelSet[l].get(); }
@@ -393,7 +393,7 @@ public:
 
     unsigned get_num_top_set() const { return *num_top_set.get(); }
     void set_num_top_set(unsigned l) {
-        num_top_set = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_top_set = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     top_tuple* get_topSet(unsigned l) const { return topSet[l].get(); }
@@ -405,7 +405,7 @@ public:
 
     unsigned get_num_routes() const { return *num_routes.get(); }
     void set_num_routes(unsigned l) {
-        num_routes = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_routes = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     RT_entry* get_route_table(unsigned l) const { return route_table[l].get(); }
@@ -416,7 +416,7 @@ public:
 
     unsigned get_num_dupes() const { return *num_dupes.get(); }
     void set_num_dupes(unsigned l) {
-        num_dupes = std::allocate_shared<unsigned, boost::fast_pool_allocator<unsigned>>(unsigned_allocator, l);
+        num_dupes = std::allocate_shared<unsigned>(unsigned_allocator, l);
     }
 
     dup_tuple* get_dupSet(unsigned l) const { return dupSet[l].get(); }
@@ -428,7 +428,7 @@ public:
 
     uint16_t get_ansn() const { return *ansn.get(); }
     void set_ansn(uint16_t l) {
-        ansn = std::allocate_shared<uint16_t, boost::fast_pool_allocator<uint16_t>>(uint16_allocator, l);
+        ansn = std::allocate_shared<uint16_t>(uint16_allocator, l);
     }
 
     // vector<LinkTuple>
