@@ -9,6 +9,7 @@
  * Simple driver to test out various functionalities in the OLSR impl.
  */
 
+boost::fast_pool_allocator<uint16_t> uint16_allocator;
 boost::fast_pool_allocator<o_addr> o_addr_allocator;
 boost::fast_pool_allocator<unsigned> unsigned_allocator;
 boost::fast_pool_allocator<RT_entry> RT_entry_allocator;
@@ -334,17 +335,16 @@ int out_of_radio_range(node_state *s, olsr_msg_data *m)
  * N is the subset of neighbors of the node, which are neighbors of the
  * interface I.
  */
-unsigned Dy(node_state *s, o_addr target)
+unsigned node_state::Dy(o_addr target) const
 {
-    int i, j, in;
     o_addr temp[OLSR_MAX_NEIGHBORS];
     int temp_size = 0;
 
-    for (i = 0; i < s->get_num_two_hop(); i++) {
+    for (int i = 0, e = get_num_two_hop(); i < e; i++) {
 
-        in = 0;
-        for (j = 0; j < s->get_num_neigh(); j++) {
-            if (s->get_twoHopSet(i)->twoHopNeighborAddr == s->get_neighSet(j)->neighborMainAddr) {
+        int in = 0;
+        for (int j = 0, je = get_num_neigh(); j < je; j++) {
+            if (twoHopSet[i]->twoHopNeighborAddr == neighSet[j]->neighborMainAddr) {
                 // EXCLUDING all members of N...
                 in = 1;
                 continue;
@@ -353,17 +353,17 @@ unsigned Dy(node_state *s, o_addr target)
 
         if (in) continue;
 
-        if (s->get_twoHopSet(i)->neighborMainAddr == target) {
+        if (twoHopSet[i]->neighborMainAddr == target) {
             in = 0;
             // Add s->twoHopSet[i].twoHopNeighborAddr to this set
-            for (j = 0; j < temp_size; j++) {
-                if (temp[j] == s->get_twoHopSet(i)->twoHopNeighborAddr) {
+            for (int j = 0; j < temp_size; j++) {
+                if (temp[j] == twoHopSet[i]->twoHopNeighborAddr) {
                     in = 1;
                 }
             }
 
             if (!in) {
-                temp[temp_size] = s->get_twoHopSet(i)->twoHopNeighborAddr;
+                temp[temp_size] = twoHopSet[i]->twoHopNeighborAddr;
                 temp_size++;
                 assert(temp_size < OLSR_MAX_NEIGHBORS);
             }
@@ -493,26 +493,22 @@ top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr, node_state *s)
     return nullptr;
 }
 
-neigh_tuple * FindSymNeighborTuple(node_state *s, o_addr mainAddr)
+neigh_tuple * node_state::FindSymNeighborTuple(o_addr mainAddr) const
 {
-    int i;
-
-    for (i = 0; i < s->get_num_neigh(); i++) {
-        if (s->get_neighSet(i)->neighborMainAddr == mainAddr) {
-            return s->get_neighSet(i);
+    for (int i = 0, e = get_num_neigh(); i < e; i++) {
+        if (neighSet[i]->neighborMainAddr == mainAddr) {
+            return neighSet[i].get();
         }
     }
 
     return nullptr;
 }
 
-RT_entry * Lookup(node_state *s, o_addr dest)
+RT_entry * node_state::Lookup(o_addr dest) const
 {
-    int i;
-
-    for (i = 0; i < s->get_num_routes(); i++) {
-        if (s->get_route_table(i)->destAddr == dest) {
-            return s->get_route_table(i);
+    for (int i = 0, e = get_num_routes(); i < e; i++) {
+        if (route_table[i]->destAddr == dest) {
+            return route_table[i].get();
         }
     }
 
@@ -535,7 +531,7 @@ void RoutingTableComputation(node_state *s)
     // 2. The new routing entries are added starting with the
     // symmetric neighbors (h=1) as the destination nodes.
     for (i = 0; i < s->get_num_neigh(); i++) {
-        auto nt = std::allocate_shared<RT_entry, boost::fast_pool_allocator<RT_entry>>(RT_entry_allocator);
+        auto nt =  std::allocate_shared<RT_entry, boost::fast_pool_allocator<RT_entry>>(RT_entry_allocator);
         nt->destAddr = s->get_neighSet(i)->neighborMainAddr;
         nt->nextAddr = s->get_neighSet(i)->neighborMainAddr;
         nt->distance = 1;
@@ -551,7 +547,7 @@ void RoutingTableComputation(node_state *s)
     //  willingness different of WILL_NEVER,
     for (i = 0; i < s->get_num_two_hop(); i++) {
 
-        if (FindSymNeighborTuple(s, s->get_twoHopSet(i)->twoHopNeighborAddr)) {
+        if (s->FindSymNeighborTuple(s->get_twoHopSet(i)->twoHopNeighborAddr)) {
             continue;
         }
 
@@ -570,7 +566,7 @@ void RoutingTableComputation(node_state *s)
         //                               routing table with:
         //                                   R_dest_addr == N_neighbor_main_addr
         //                                                  of the 2-hop tuple;
-        if ((route = Lookup(s, s->get_twoHopSet(i)->neighborMainAddr))) {
+        if ((route = s->Lookup(s->get_twoHopSet(i)->neighborMainAddr))) {
             auto nt = std::allocate_shared<RT_entry, boost::fast_pool_allocator<RT_entry>>(RT_entry_allocator);
             nt->destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
             nt->nextAddr = route->nextAddr;
@@ -592,8 +588,8 @@ void RoutingTableComputation(node_state *s)
 
         for (i = 0; i < s->get_num_top_set(); i++) {
             //printf("Looking at node %lu top_tuple[%d] dest: %lu, last: %lu, seq: %d\n", s->local_address, i, s->topSet[i].destAddr, s->topSet[i].lastAddr, s->topSet[i].sequenceNumber);
-            RT_entry *destAddrEntry = Lookup(s, s->get_topSet(i)->destAddr);
-            RT_entry *lastAddrEntry = Lookup(s, s->get_topSet(i)->lastAddr);
+            RT_entry *destAddrEntry = s->Lookup(s->get_topSet(i)->destAddr);
+            RT_entry *lastAddrEntry = s->Lookup(s->get_topSet(i)->lastAddr);
             if (!destAddrEntry && lastAddrEntry && lastAddrEntry->distance == h) {
                 auto nt = std::allocate_shared<RT_entry, boost::fast_pool_allocator<RT_entry>>(RT_entry_allocator);
                 nt->destAddr = s->get_topSet(i)->destAddr;
@@ -742,7 +738,7 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
 
     // If the sender interface address is not in the symmetric
     // 1-hop neighborhood the message must not be forwarded
-    if (nullptr == FindSymNeighborTuple(s, senderAddress)) {
+    if (nullptr == s->FindSymNeighborTuple(senderAddress)) {
         return;
     }
 
@@ -818,7 +814,7 @@ void ForwardDefault(olsr_msg_data *olsrMessage,
 void route_packet(node_state *s, tw_event *e)
 {
     olsr_msg_data *m = (olsr_msg_data*)tw_event_data(e);
-    RT_entry * route = Lookup(s, m->destination);
+    RT_entry * route = s->Lookup(m->destination);
     if (route == nullptr) {
         printf("Node %llu doesn't have a route to %llu\n", s->get_local_address(), m->destination);
         return;
@@ -1048,7 +1044,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 
             // Calculate D(y), where y is a member of N, for all nodes in N
             for (i = 0; i < g_num_one_hop; i++) {
-                g_Dy[i] = Dy(s, g_mpr_one_hop[i].neighborMainAddr);
+                g_Dy[i] = s->Dy(g_mpr_one_hop[i].neighborMainAddr);
                 g_reachability[i] = 0;
             }
 
@@ -1527,7 +1523,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             cur_lp = tw_getlocal_lp(region(s->get_local_address())*OLSR_MAX_NEIGHBORS);
 
             // If we don't have a route, don't allocate an event!
-            if (Lookup(s, MASTER_NODE) == nullptr) {
+            if (s->Lookup(MASTER_NODE) == nullptr) {
                 return;
             }
 
@@ -1611,7 +1607,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
 
             if (m->sender == s->get_local_address()) {
                 // If we don't have a route, don't allocate an event!
-                if (Lookup(s, MASTER_NODE) == nullptr) {
+                if (s->Lookup(MASTER_NODE) == nullptr) {
                     return;
                 }
 
@@ -1879,7 +1875,7 @@ void olsr_final(node_state *s, tw_lp *lp)
     for (i = 0; i < s->get_num_neigh(); i++) {
         printf("   neighbor[%d] is %llu\n", i, s->get_neighSet(i)->neighborMainAddr);
         printf("   Dy(%llu) is %d\n", s->get_neighSet(i)->neighborMainAddr,
-               Dy(s, s->get_neighSet(i)->neighborMainAddr));
+               s->Dy(s->get_neighSet(i)->neighborMainAddr));
     }
 
     printf("node %llu has %d two-hop neighbors\n", s->get_local_address(),
