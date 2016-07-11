@@ -12,6 +12,7 @@
 boost::fast_pool_allocator<uint16_t> uint16_allocator;
 boost::fast_pool_allocator<o_addr> o_addr_allocator;
 boost::fast_pool_allocator<unsigned> unsigned_allocator;
+boost::fast_pool_allocator<double> double_allocator;
 boost::fast_pool_allocator<RT_entry> RT_entry_allocator;
 boost::fast_pool_allocator<dup_tuple> dup_tuple_allocator;
 boost::fast_pool_allocator<neigh_tuple> neigh_tuple_allocator;
@@ -531,10 +532,10 @@ void RoutingTableComputation(node_state *s)
     // 2. The new routing entries are added starting with the
     // symmetric neighbors (h=1) as the destination nodes.
     for (i = 0; i < s->get_num_neigh(); i++) {
-        auto nt =  std::allocate_shared<RT_entry>(RT_entry_allocator);
-        nt->destAddr = s->get_neighSet(i)->neighborMainAddr;
-        nt->nextAddr = s->get_neighSet(i)->neighborMainAddr;
-        nt->distance = 1;
+        RT_entry nt;
+        nt.destAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt.nextAddr = s->get_neighSet(i)->neighborMainAddr;
+        nt.distance = 1;
         s->set_route_table(s->get_num_routes(), nt);
         s->set_num_routes(s->get_num_routes() + 1);
         assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -567,10 +568,10 @@ void RoutingTableComputation(node_state *s)
         //                                   R_dest_addr == N_neighbor_main_addr
         //                                                  of the 2-hop tuple;
         if ((route = s->Lookup(s->get_twoHopSet(i)->neighborMainAddr))) {
-            auto nt = std::allocate_shared<RT_entry>(RT_entry_allocator);
-            nt->destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
-            nt->nextAddr = route->nextAddr;
-            nt->distance = 2;
+            RT_entry nt;
+            nt.destAddr = s->get_twoHopSet(i)->twoHopNeighborAddr;
+            nt.nextAddr = route->nextAddr;
+            nt.distance = 2;
             s->set_route_table(s->get_num_routes(), nt);
             s->set_num_routes(s->get_num_routes() + 1);
             assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -591,10 +592,10 @@ void RoutingTableComputation(node_state *s)
             RT_entry *destAddrEntry = s->Lookup(s->get_topSet(i)->destAddr);
             RT_entry *lastAddrEntry = s->Lookup(s->get_topSet(i)->lastAddr);
             if (!destAddrEntry && lastAddrEntry && lastAddrEntry->distance == h) {
-                auto nt = std::allocate_shared<RT_entry>(RT_entry_allocator);
-                nt->destAddr = s->get_topSet(i)->destAddr;
-                nt->nextAddr = lastAddrEntry->nextAddr;
-                nt->distance = h + 1;
+                RT_entry nt;
+                nt.destAddr = s->get_topSet(i)->destAddr;
+                nt.nextAddr = lastAddrEntry->nextAddr;
+                nt.distance = h + 1;
                 s->set_route_table(s->get_num_routes(), nt);
                 s->set_num_routes(s->get_num_routes() + 1);
                 assert(s->get_num_routes() < OLSR_MAX_ROUTES);
@@ -678,11 +679,11 @@ void AddDuplicate(o_addr originator,
         s->get_dupSetSP(oldest).swap(nt);
     }
     else {
-        auto nt = std::allocate_shared<dup_tuple>(dup_tuple_allocator);
-        nt->address = originator;
-        nt->sequenceNumber = seq_num;
-        nt->expirationTime = ts;
-        nt->retransmitted = retransmitted;
+        dup_tuple nt;
+        nt.address = originator;
+        nt.sequenceNumber = seq_num;
+        nt.expirationTime = ts;
+        nt.retransmitted = retransmitted;
         s->set_dupSet(s->get_num_dupes(), nt);
         s->set_num_dupes(s->get_num_dupes() + 1);
         assert(s->get_num_dupes() < OLSR_MAX_DUPES);
@@ -981,8 +982,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
             }
 
             if (!in) {
-                auto nt = std::allocate_shared<neigh_tuple>(neigh_tuple_allocator);
-                nt->neighborMainAddr = m->originator;
+                neigh_tuple nt;
+                nt.neighborMainAddr = m->originator;
                 s->set_neighSet(s->get_num_neigh(), nt);
                 s->set_num_neigh(s->get_num_neigh() + 1);
                 assert(s->get_num_neigh() < OLSR_MAX_NEIGHBORS);
@@ -1012,9 +1013,9 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 }
 
                 if (!in) {
-                    auto nt = std::allocate_shared<two_hop_neigh_tuple>(two_hop_neigh_tuple_allocator);
-                    nt->neighborMainAddr = m->originator;
-                    nt->twoHopNeighborAddr = h->neighbor_addrs[i];
+                    two_hop_neigh_tuple nt;
+                    nt.neighborMainAddr = m->originator;
+                    nt.twoHopNeighborAddr = h->neighbor_addrs[i];
                     s->set_twoHopSet(s->get_num_two_hop(), nt);
                     assert(s->get_twoHopSet(s->get_num_two_hop())->neighborMainAddr !=
                            s->get_twoHopSet(s->get_num_two_hop())->twoHopNeighborAddr);
@@ -1298,8 +1299,8 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     // Check if it contains OUR address
                     if (h->neighbor_addrs[i] == s->get_local_address()) {
                         // We should add this guy to the selector set
-                        auto nt = std::allocate_shared<mpr_sel_tuple>(mpr_sel_tuple_allocator);
-                        nt->mainAddr = m->originator;
+                        mpr_sel_tuple nt;
+                        nt.mainAddr = m->originator;
                         s->set_MprSelSet(s->get_num_mpr_sel(), nt);
                         s->set_num_mpr_sel(s->get_num_mpr_sel() + 1);
                         assert(s->get_num_mpr_sel() <= OLSR_MAX_NEIGHBORS);
@@ -1473,11 +1474,11 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                     //	T_last_addr = originator address,
                     //	T_seq       = ANSN,
                     //	T_time      = current time + validity time.
-                    auto nt = std::allocate_shared<top_tuple>(top_tuple_allocator);
-                    nt->destAddr = addr;
-                    nt->lastAddr = m->originator;
-                    nt->sequenceNumber = m->mt.t.ansn;
-                    nt->expirationTime = tw_now(lp) + TOP_HOLD_TIME;
+                    top_tuple nt;
+                    nt.destAddr = addr;
+                    nt.lastAddr = m->originator;
+                    nt.sequenceNumber = m->mt.t.ansn;
+                    nt.expirationTime = tw_now(lp) + TOP_HOLD_TIME;
                     s->set_topSet(s->get_num_top_set(), nt);
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
                     s->set_num_top_set(s->get_num_top_set() + 1);
