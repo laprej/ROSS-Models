@@ -336,6 +336,7 @@ public:
     unsigned Dy(o_addr target) const;
     RT_entry * Lookup(o_addr dest) const;
     neigh_tuple * FindSymNeighborTuple(o_addr mainAddr) const;
+    top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr) const;
 
     double get_lng() const { return *lng.get(); }
     void set_lng(double l) {

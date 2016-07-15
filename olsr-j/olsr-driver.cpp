@@ -341,30 +341,30 @@ unsigned node_state::Dy(o_addr target) const
     o_addr temp[OLSR_MAX_NEIGHBORS];
     int temp_size = 0;
 
-    for (int i = 0, e = get_num_two_hop(); i < e; i++) {
+    int num_two_hop = get_num_two_hop();
 
+    int i = 0;
+
+    for (const auto & thn: twoHopSet) {
+        if (thn == nullptr) break;
         int in = 0;
-        for (int j = 0, je = get_num_neigh(); j < je; j++) {
-            if (twoHopSet[i]->twoHopNeighborAddr == neighSet[j]->neighborMainAddr) {
-                // EXCLUDING all members of N...
+        for (const auto & ns: neighSet) {
+            if (ns == nullptr) break;
+            if (thn->twoHopNeighborAddr == ns->neighborMainAddr) {
                 in = 1;
                 continue;
             }
         }
-
         if (in) continue;
-
-        if (twoHopSet[i]->neighborMainAddr == target) {
+        if (thn->neighborMainAddr == target) {
             in = 0;
-            // Add s->twoHopSet[i].twoHopNeighborAddr to this set
             for (int j = 0; j < temp_size; j++) {
-                if (temp[j] == twoHopSet[i]->twoHopNeighborAddr) {
+                if (temp[j] == thn->twoHopNeighborAddr) {
                     in = 1;
                 }
             }
-
             if (!in) {
-                temp[temp_size] = twoHopSet[i]->twoHopNeighborAddr;
+                temp[temp_size] = thn->twoHopNeighborAddr;
                 temp_size++;
                 assert(temp_size < OLSR_MAX_NEIGHBORS);
             }
@@ -481,14 +481,12 @@ void EraseOlderTopologyTuples(o_addr last, uint16_t ansn, node_state *s)
 /**
  * Direct ripoff of corresponding ns3 function
  */
-top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr, node_state *s)
+top_tuple * node_state::FindTopologyTuple(o_addr destAddr, o_addr lastAddr) const
 {
-    int i;
-
-    for (i = 0; i < s->get_num_top_set(); i++) {
-        if (s->get_topSet(i)->destAddr == destAddr && s->get_topSet(i)->lastAddr == lastAddr) {
-            return s->get_topSet(i);
-        }
+    for (const auto &t: topSet) {
+        if (t == nullptr) break;
+        if (t->destAddr == destAddr && t->lastAddr == lastAddr)
+            return t.get();
     }
 
     return nullptr;
@@ -496,10 +494,10 @@ top_tuple * FindTopologyTuple(o_addr destAddr, o_addr lastAddr, node_state *s)
 
 neigh_tuple * node_state::FindSymNeighborTuple(o_addr mainAddr) const
 {
-    for (int i = 0, e = get_num_neigh(); i < e; i++) {
-        if (neighSet[i]->neighborMainAddr == mainAddr) {
-            return neighSet[i].get();
-        }
+    for (const auto &n: neighSet) {
+        if (n == nullptr) break;
+        if (n->neighborMainAddr == mainAddr)
+            return n.get();
     }
 
     return nullptr;
@@ -507,10 +505,9 @@ neigh_tuple * node_state::FindSymNeighborTuple(o_addr mainAddr) const
 
 RT_entry * node_state::Lookup(o_addr dest) const
 {
-    for (int i = 0, e = get_num_routes(); i < e; i++) {
-        if (route_table[i]->destAddr == dest) {
-            return route_table[i].get();
-        }
+    for (const auto & r: route_table) {
+        if (r == nullptr) break;
+        if (r->destAddr == dest) return r.get();
     }
 
     return nullptr;
@@ -1461,7 +1458,7 @@ void olsr_event(node_state *s, tw_bf *bf, olsr_msg_data *m, tw_lp *lp)
                 //        T_last_addr == originator address,
                 // then the holding time of that tuple MUST be set to:
                 //        T_time      =  current time + validity time.
-                tt = FindTopologyTuple(addr, m->originator, s);
+                tt = s->FindTopologyTuple(addr, m->originator);
 
                 if (tt != nullptr) {
 #warning "Correct this line - TOP_HOLD_TIME should be in the struct!"
